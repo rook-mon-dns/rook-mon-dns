@@ -1,0 +1,4 @@
+resources:
+- allow-metrics-traffic.yaml
+- allow-health-probes.yaml
+- restrict-egress.yaml

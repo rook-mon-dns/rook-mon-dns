@@ -1,0 +1,39 @@
+# This NetworkPolicy restricts the operator's egress traffic to the
+# Kubernetes API server and DNS. The operator talks to nothing else.
+#
+# NOTE: 10.96.0.0/12 is the default Kubernetes service CIDR (also the Talos
+# default). Adjust the ipBlock if your cluster uses a different service CIDR,
+# otherwise the operator cannot reach the API server.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
+    app.kubernetes.io/managed-by: kustomize
+  name: restrict-egress
+  namespace: system
+spec:
+  podSelector:
+    matchLabels:
+      control-plane: controller-manager
+      app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
+  policyTypes:
+    - Egress
+  egress:
+    # Kubernetes API server (service CIDR)
+    - to:
+        - ipBlock:
+            cidr: 10.96.0.0/12
+      ports:
+        - port: 443
+          protocol: TCP
+    # DNS resolution (CoreDNS/kube-dns), as a safety net
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP

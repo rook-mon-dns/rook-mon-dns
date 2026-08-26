@@ -1,0 +1,23 @@
+# This NetworkPolicy allows ingress traffic to the health probe endpoints
+# (/healthz, /readyz on :8081). Kubelet probes originate from the node
+# network, which CNIs model differently, so the source is not restricted;
+# the endpoints expose no data beyond "ok".
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
+    app.kubernetes.io/managed-by: kustomize
+  name: allow-health-probes
+  namespace: system
+spec:
+  podSelector:
+    matchLabels:
+      control-plane: controller-manager
+      app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: 8081
+          protocol: TCP

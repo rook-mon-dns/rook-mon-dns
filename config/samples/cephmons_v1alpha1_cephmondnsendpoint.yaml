@@ -1,0 +1,34 @@
+apiVersion: cephmons.github.io/v1alpha1
+kind: CephMonDNSEndpoint
+metadata:
+  labels:
+    app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
+    app.kubernetes.io/managed-by: kustomize
+  name: rook-ceph
+  namespace: rook-ceph
+spec:
+  # Base DNS zone for all records (required). With --allowed-zones set on the
+  # operator, the zone must be contained in that list.
+  zone: ceph.example.com
+
+  # Everything below is optional; the shown values are the defaults.
+
+  # Source ConfigMap (namespace defaults to the CR namespace and must not
+  # differ from it).
+  configMapRef:
+    name: rook-ceph-mon-endpoints
+
+  # Per-monitor record names: mon1.ceph.example.com, mon2.ceph.example.com, ...
+  # Placeholders: {n} = stable sequence number (mons sorted by ID), {id} = Rook mon ID.
+  recordTemplate: "mon{n}"
+
+  # Aggregate A record containing all mon node IPs. Set to "" to disable.
+  allRecordName: "mon-all"
+
+  ttl: 300
+
+  # Optional SRV record (_ceph-mon._tcp.ceph.example.com) for Ceph client
+  # discovery via "mon dns srv name" in ceph.conf.
+  srv:
+    enabled: false
+    name: "_ceph-mon._tcp"

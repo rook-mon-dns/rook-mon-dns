@@ -1,0 +1,44 @@
+# Default values for rook-ceph-mon-external-dns-publisher.
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/example/rook-ceph-mon-external-dns-publisher
+  # tag defaults to the chart appVersion when empty.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+# Namespaces the operator watches and reconciles in. One Role/RoleBinding pair
+# is created per namespace. CephMonDNSEndpoint resources, their source
+# ConfigMaps and the generated DNSEndpoints must all live in these namespaces.
+watchNamespaces:
+  - rook-ceph
+
+# DNS zones that CephMonDNSEndpoint resources may publish in.
+# Empty list = no restriction.
+allowedZones: []
+
+leaderElection: true
+
+# Metrics endpoint (plain HTTP on :8080). Protect it with the NetworkPolicy
+# below (default) or your monitoring setup.
+metrics:
+  enabled: true
+
+networkPolicy:
+  enabled: true
+  # CIDR of the Kubernetes API server (usually the service CIDR).
+  # 10.96.0.0/12 is the Kubernetes/Talos default – adjust if different.
+  apiServerCIDR: 10.96.0.0/12
+  # Only namespaces carrying these labels may scrape the metrics endpoint.
+  metricsNamespaceLabels:
+    metrics: enabled
+
+# PSS-restricted-compliant; do not weaken unless you know why.
+resources:
+  requests:
+    cpu: 10m
+    memory: 64Mi
+  limits:
+    # No CPU limit on purpose (CFS throttling); memory limit is mandatory.
+    memory: 128Mi

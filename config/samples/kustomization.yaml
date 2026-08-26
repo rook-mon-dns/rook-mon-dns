@@ -1,0 +1,4 @@
+## Append samples of your project ##
+resources:
+- cephmons_v1alpha1_cephmondnsendpoint.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples

@@ -1,0 +1,39 @@
+# Namespace-scoped Role used by the operator at runtime.
+#
+# This mirrors the +kubebuilder:rbac markers in
+# internal/controller/cephmondnsendpoint_controller.go, but as a Role instead
+# of the ClusterRole that controller-gen emits (config/rbac/role.yaml, kept
+# for reference only and NOT applied – the operator runs with
+# --watch-namespaces and therefore only needs rights in the watched
+# namespaces). When the markers change, update this file accordingly.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
+    app.kubernetes.io/managed-by: kustomize
+  name: manager-role
+  namespace: system
+rules:
+  # Rook mon endpoints ConfigMap (read-only)
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  # Events emitted by the reconciler
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+  # The operator's own CRs
+  - apiGroups: ["cephmons.github.io"]
+    resources: ["cephmondnsendpoints"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["cephmons.github.io"]
+    resources: ["cephmondnsendpoints/finalizers"]
+    verbs: ["update"]
+  - apiGroups: ["cephmons.github.io"]
+    resources: ["cephmondnsendpoints/status"]
+    verbs: ["get", "patch", "update"]
+  # DNSEndpoint objects published for ExternalDNS
+  - apiGroups: ["externaldns.k8s.io"]
+    resources: ["dnsendpoints"]
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]

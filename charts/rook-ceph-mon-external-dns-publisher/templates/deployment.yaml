@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rook-ceph-mon-external-dns-publisher.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "rook-ceph-mon-external-dns-publisher.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      {{- include "rook-ceph-mon-external-dns-publisher.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "rook-ceph-mon-external-dns-publisher.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "rook-ceph-mon-external-dns-publisher.serviceAccountName" . }}
+      terminationGracePeriodSeconds: 10
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: manager
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            {{- if .Values.leaderElection }}
+            - --leader-elect
+            {{- end }}
+            - --health-probe-bind-address=:8081
+            {{- if .Values.metrics.enabled }}
+            - --metrics-bind-address=:8080
+            - --metrics-secure=false
+            {{- end }}
+            - --watch-namespaces={{ .Values.watchNamespaces | join "," }}
+            {{- if .Values.allowedZones }}
+            - --allowed-zones={{ .Values.allowedZones | join "," }}
+            {{- end }}
+          ports:
+            - containerPort: 8081
+              name: health
+              protocol: TCP
+            {{- if .Values.metrics.enabled }}
+            - containerPort: 8080
+              name: metrics
+              protocol: TCP
+            {{- end }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
