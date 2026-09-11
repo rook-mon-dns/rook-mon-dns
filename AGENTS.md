@@ -1,4 +1,4 @@
-# rook-ceph-mon-external-dns-publisher - AI Agent Guide
+# rook-mon-dns - AI Agent Guide
 
 ## Local Toolchain (important)
 

@@ -1,4 +1,4 @@
-# rook-ceph-mon-external-dns-publisher
+# rook-mon-dns
 
 A Kubernetes operator that watches the Rook Ceph `rook-ceph-mon-endpoints`
 ConfigMap and publishes the monitor **node IPs** as DNS records via
@@ -43,10 +43,10 @@ The operator needs no access to your DNS provider – ExternalDNS handles that.
 
 ```sh
 # build & push the image
-make docker-build docker-push IMG=<registry>/rook-ceph-mon-external-dns-publisher:<tag>
+make docker-build docker-push IMG=<registry>/rook-mon-dns:<tag>
 
 # deploys into the rook-ceph namespace, watching only that namespace
-make deploy IMG=<registry>/rook-ceph-mon-external-dns-publisher:<tag>
+make deploy IMG=<registry>/rook-mon-dns:<tag>
 
 # create the resource
 kubectl apply -k config/samples/
@@ -58,9 +58,9 @@ Or use the prebuilt installer from `dist/install.yaml`
 ### Helm
 
 ```sh
-helm install publisher charts/rook-ceph-mon-external-dns-publisher \
+helm install publisher charts/rook-mon-dns \
   --namespace rook-ceph \
-  --set image.repository=<registry>/rook-ceph-mon-external-dns-publisher \
+  --set image.repository=<registry>/rook-mon-dns \
   --set image.tag=<tag>
 ```
 

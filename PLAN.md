@@ -1,4 +1,4 @@
-# Plan: rook-ceph-mon-external-dns-publisher
+# Plan: rook-mon-dns
 
 A Kubernetes operator that reads the Rook Ceph monitor endpoints from the
 `rook-ceph-mon-endpoints` ConfigMap and publishes them as DNS records via
@@ -27,7 +27,7 @@ ExternalDNS.
       DNSEndpoint CRD startup check
 - [x] Kustomize sample CR + `make build-installer` → `dist/install.yaml`,
       kubeconform strict 17/17 valid (k8s 1.30)
-- [x] Helm chart `charts/rook-ceph-mon-external-dns-publisher` (CRD in `crds/`,
+- [x] Helm chart `charts/rook-mon-dns` (CRD in `crds/`,
       per-namespace Roles from `watchNamespaces`), helm lint + kubeconform 8/8
 - [x] `make test` green (24 unit + 8 envtest, controller coverage 83.3 %),
       `make docker-build` green (distroless image)
@@ -263,7 +263,7 @@ in `ceph.conf`.
 │   ├── manager/
 │   ├── default/
 │   └── samples/
-├── charts/rook-ceph-mon-external-dns-publisher/
+├── charts/rook-mon-dns/
 ├── Dockerfile                          # distroless, Kubebuilder standard
 ├── Makefile
 ├── PROJECT
@@ -341,7 +341,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: manager
-          image: <registry>/rook-ceph-mon-external-dns-publisher:vX.Y.Z@sha256:…   # immutable
+          image: <registry>/rook-mon-dns:vX.Y.Z@sha256:…   # immutable
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -446,7 +446,7 @@ spec:
 kustomize build config/default | kubeconform -strict -kubernetes-version 1.30.0 \
   -schema-location 'https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/{{.NormalizedKubernetesVersion}}/{{.ResourceKind}}{{.KindSuffix}}.json' \
   -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
-helm template publisher charts/rook-ceph-mon-external-dns-publisher | kubeconform -strict -kubernetes-version 1.30.0 \
+helm template publisher charts/rook-mon-dns | kubeconform -strict -kubernetes-version 1.30.0 \
   -schema-location 'https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/{{.NormalizedKubernetesVersion}}/{{.ResourceKind}}{{.KindSuffix}}.json'
 
 # server-side dry-run + diff review (never apply to prod without a reviewed diff)

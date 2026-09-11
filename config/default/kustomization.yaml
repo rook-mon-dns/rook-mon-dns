@@ -10,7 +10,7 @@ namespace: rook-ceph
 # "wordpress" becomes "alices-wordpress".
 # Note that it should also match with the prefix (text before '-') of the namespace
 # field above.
-namePrefix: rook-ceph-mon-external-dns-publisher-
+namePrefix: rook-mon-dns-
 
 # Labels to add to all resources and selectors.
 #labels:

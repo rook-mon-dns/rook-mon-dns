@@ -2,7 +2,7 @@ apiVersion: cephmons.github.io/v1alpha1
 kind: CephMonDNSEndpoint
 metadata:
   labels:
-    app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
+    app.kubernetes.io/name: rook-mon-dns
     app.kubernetes.io/managed-by: kustomize
   name: rook-ceph
   namespace: rook-ceph

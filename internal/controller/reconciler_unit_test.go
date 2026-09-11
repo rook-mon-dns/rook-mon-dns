@@ -32,8 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	cephmonsv1alpha1 "cephmons.github.io/rook-ceph-mon-external-dns-publisher/api/v1alpha1"
-	externaldnsv1alpha1 "cephmons.github.io/rook-ceph-mon-external-dns-publisher/internal/externaldns/v1alpha1"
+	cephmonsv1alpha1 "cephmons.github.io/rook-mon-dns/api/v1alpha1"
+	externaldnsv1alpha1 "cephmons.github.io/rook-mon-dns/internal/externaldns/v1alpha1"
 )
 
 var reconcileCtx = context.Background()

@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "rook-ceph-mon-external-dns-publisher.fullname" . }}
+  name: {{ include "rook-mon-dns.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "rook-ceph-mon-external-dns-publisher.labels" . | nindent 4 }}
+    {{- include "rook-mon-dns.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   revisionHistoryLimit: 5
   selector:
     matchLabels:
-      {{- include "rook-ceph-mon-external-dns-publisher.selectorLabels" . | nindent 6 }}
+      {{- include "rook-mon-dns.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "rook-ceph-mon-external-dns-publisher.selectorLabels" . | nindent 8 }}
+        {{- include "rook-mon-dns.selectorLabels" . | nindent 8 }}
     spec:
-      serviceAccountName: {{ include "rook-ceph-mon-external-dns-publisher.serviceAccountName" . }}
+      serviceAccountName: {{ include "rook-mon-dns.serviceAccountName" . }}
       terminationGracePeriodSeconds: 10
       securityContext:
         runAsNonRoot: true

@@ -28,12 +28,12 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"cephmons.github.io/rook-ceph-mon-external-dns-publisher/test/utils"
+	"cephmons.github.io/rook-mon-dns/test/utils"
 )
 
 var (
 	// managerImage is the manager image to be built and loaded for testing.
-	managerImage = "example.com/rook-ceph-mon-external-dns-publisher:v0.0.1"
+	managerImage = "example.com/rook-mon-dns:v0.0.1"
 	// shouldCleanupCertManager tracks whether CertManager was installed by this suite.
 	shouldCleanupCertManager = false
 )
@@ -46,7 +46,7 @@ var (
 // To skip CertManager installation, set: CERT_MANAGER_INSTALL_SKIP=true
 func TestE2E(t *testing.T) {
 	RegisterFailHandler(Fail)
-	_, _ = fmt.Fprintf(GinkgoWriter, "Starting rook-ceph-mon-external-dns-publisher e2e test suite\n")
+	_, _ = fmt.Fprintf(GinkgoWriter, "Starting rook-mon-dns e2e test suite\n")
 	RunSpecs(t, "e2e suite")
 }
 

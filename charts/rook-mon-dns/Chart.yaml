@@ -1,5 +1,5 @@
 apiVersion: v2
-name: rook-ceph-mon-external-dns-publisher
+name: rook-mon-dns
 description: |-
   Publishes Rook Ceph monitor node endpoints (from the rook-ceph-mon-endpoints
   ConfigMap) as DNS records via ExternalDNS DNSEndpoint objects.

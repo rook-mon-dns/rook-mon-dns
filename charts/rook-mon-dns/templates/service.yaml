@@ -2,14 +2,14 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "rook-ceph-mon-external-dns-publisher.fullname" . }}-metrics
+  name: {{ include "rook-mon-dns.fullname" . }}-metrics
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "rook-ceph-mon-external-dns-publisher.labels" . | nindent 4 }}
+    {{- include "rook-mon-dns.labels" . | nindent 4 }}
 spec:
   type: ClusterIP
   selector:
-    {{- include "rook-ceph-mon-external-dns-publisher.selectorLabels" . | nindent 4 }}
+    {{- include "rook-mon-dns.selectorLabels" . | nindent 4 }}
   ports:
     - name: metrics
       port: 8080

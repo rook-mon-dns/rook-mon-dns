@@ -2,14 +2,14 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: {{ include "rook-ceph-mon-external-dns-publisher.fullname" . }}
+  name: {{ include "rook-mon-dns.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "rook-ceph-mon-external-dns-publisher.labels" . | nindent 4 }}
+    {{- include "rook-mon-dns.labels" . | nindent 4 }}
 spec:
   podSelector:
     matchLabels:
-      {{- include "rook-ceph-mon-external-dns-publisher.selectorLabels" . | nindent 6 }}
+      {{- include "rook-mon-dns.selectorLabels" . | nindent 6 }}
   policyTypes:
     - Ingress
     - Egress

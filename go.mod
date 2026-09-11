@@ -1,4 +1,4 @@
-module cephmons.github.io/rook-ceph-mon-external-dns-publisher
+module cephmons.github.io/rook-mon-dns
 
 go 1.26.0
 

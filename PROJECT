@@ -6,8 +6,8 @@ cliVersion: 4.15.0
 domain: github.io
 layout:
 - go.kubebuilder.io/v4
-projectName: rook-ceph-mon-external-dns-publisher
-repo: cephmons.github.io/rook-ceph-mon-external-dns-publisher
+projectName: rook-mon-dns
+repo: cephmons.github.io/rook-mon-dns
 resources:
 - api:
     crdVersion: v1
@@ -16,6 +16,6 @@ resources:
   domain: github.io
   group: cephmons
   kind: CephMonDNSEndpoint
-  path: cephmons.github.io/rook-ceph-mon-external-dns-publisher/api/v1alpha1
+  path: cephmons.github.io/rook-mon-dns/api/v1alpha1
   version: v1alpha1
 version: "3"

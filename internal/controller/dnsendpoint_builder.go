@@ -23,8 +23,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	cephmonsv1alpha1 "cephmons.github.io/rook-ceph-mon-external-dns-publisher/api/v1alpha1"
-	externaldnsv1alpha1 "cephmons.github.io/rook-ceph-mon-external-dns-publisher/internal/externaldns/v1alpha1"
+	cephmonsv1alpha1 "cephmons.github.io/rook-mon-dns/api/v1alpha1"
+	externaldnsv1alpha1 "cephmons.github.io/rook-mon-dns/internal/externaldns/v1alpha1"
 )
 
 // BuildDNSEndpoint computes the desired DNSEndpoint object for the given
@@ -80,8 +80,8 @@ func BuildDNSEndpoint(cr *cephmonsv1alpha1.CephMonDNSEndpoint, mons []MonEndpoin
 			Name:      cr.Name,
 			Namespace: targetNamespace(cr),
 			Labels: map[string]string{
-				"app.kubernetes.io/name":       "rook-ceph-mon-external-dns-publisher",
-				"app.kubernetes.io/managed-by": "rook-ceph-mon-external-dns-publisher",
+				"app.kubernetes.io/name":       "rook-mon-dns",
+				"app.kubernetes.io/managed-by": "rook-mon-dns",
 			},
 		},
 		Spec: externaldnsv1alpha1.DNSEndpointSpec{Endpoints: endpoints},

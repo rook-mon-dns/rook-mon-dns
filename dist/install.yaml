@@ -249,8 +249,8 @@ kind: ServiceAccount
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
-  name: rook-ceph-mon-external-dns-publisher-controller-manager
+    app.kubernetes.io/name: rook-mon-dns
+  name: rook-mon-dns-controller-manager
   namespace: rook-ceph
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -258,8 +258,8 @@ kind: Role
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
-  name: rook-ceph-mon-external-dns-publisher-leader-election-role
+    app.kubernetes.io/name: rook-mon-dns
+  name: rook-mon-dns-leader-election-role
   namespace: rook-ceph
 rules:
 - apiGroups:
@@ -299,8 +299,8 @@ kind: Role
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
-  name: rook-ceph-mon-external-dns-publisher-manager-role
+    app.kubernetes.io/name: rook-mon-dns
+  name: rook-mon-dns-manager-role
   namespace: rook-ceph
 rules:
 - apiGroups:
@@ -358,8 +358,8 @@ kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
-  name: rook-ceph-mon-external-dns-publisher-cephmondnsendpoint-admin-role
+    app.kubernetes.io/name: rook-mon-dns
+  name: rook-mon-dns-cephmondnsendpoint-admin-role
 rules:
 - apiGroups:
   - cephmons.github.io
@@ -379,8 +379,8 @@ kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
-  name: rook-ceph-mon-external-dns-publisher-cephmondnsendpoint-editor-role
+    app.kubernetes.io/name: rook-mon-dns
+  name: rook-mon-dns-cephmondnsendpoint-editor-role
 rules:
 - apiGroups:
   - cephmons.github.io
@@ -406,8 +406,8 @@ kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
-  name: rook-ceph-mon-external-dns-publisher-cephmondnsendpoint-viewer-role
+    app.kubernetes.io/name: rook-mon-dns
+  name: rook-mon-dns-cephmondnsendpoint-viewer-role
 rules:
 - apiGroups:
   - cephmons.github.io
@@ -427,7 +427,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: rook-ceph-mon-external-dns-publisher-metrics-auth-role
+  name: rook-mon-dns-metrics-auth-role
 rules:
 - apiGroups:
   - authentication.k8s.io
@@ -445,7 +445,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: rook-ceph-mon-external-dns-publisher-metrics-reader
+  name: rook-mon-dns-metrics-reader
 rules:
 - nonResourceURLs:
   - /metrics
@@ -457,16 +457,16 @@ kind: RoleBinding
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
-  name: rook-ceph-mon-external-dns-publisher-leader-election-rolebinding
+    app.kubernetes.io/name: rook-mon-dns
+  name: rook-mon-dns-leader-election-rolebinding
   namespace: rook-ceph
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: rook-ceph-mon-external-dns-publisher-leader-election-role
+  name: rook-mon-dns-leader-election-role
 subjects:
 - kind: ServiceAccount
-  name: rook-ceph-mon-external-dns-publisher-controller-manager
+  name: rook-mon-dns-controller-manager
   namespace: rook-ceph
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -474,29 +474,29 @@ kind: RoleBinding
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
-  name: rook-ceph-mon-external-dns-publisher-manager-rolebinding
+    app.kubernetes.io/name: rook-mon-dns
+  name: rook-mon-dns-manager-rolebinding
   namespace: rook-ceph
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: rook-ceph-mon-external-dns-publisher-manager-role
+  name: rook-mon-dns-manager-role
 subjects:
 - kind: ServiceAccount
-  name: rook-ceph-mon-external-dns-publisher-controller-manager
+  name: rook-mon-dns-controller-manager
   namespace: rook-ceph
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: rook-ceph-mon-external-dns-publisher-metrics-auth-rolebinding
+  name: rook-mon-dns-metrics-auth-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: rook-ceph-mon-external-dns-publisher-metrics-auth-role
+  name: rook-mon-dns-metrics-auth-role
 subjects:
 - kind: ServiceAccount
-  name: rook-ceph-mon-external-dns-publisher-controller-manager
+  name: rook-mon-dns-controller-manager
   namespace: rook-ceph
 ---
 apiVersion: v1
@@ -504,9 +504,9 @@ kind: Service
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
+    app.kubernetes.io/name: rook-mon-dns
     control-plane: controller-manager
-  name: rook-ceph-mon-external-dns-publisher-controller-manager-metrics-service
+  name: rook-mon-dns-controller-manager-metrics-service
   namespace: rook-ceph
 spec:
   ports:
@@ -515,7 +515,7 @@ spec:
     protocol: TCP
     targetPort: 8443
   selector:
-    app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
+    app.kubernetes.io/name: rook-mon-dns
     control-plane: controller-manager
 ---
 apiVersion: apps/v1
@@ -523,22 +523,22 @@ kind: Deployment
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
+    app.kubernetes.io/name: rook-mon-dns
     control-plane: controller-manager
-  name: rook-ceph-mon-external-dns-publisher-controller-manager
+  name: rook-mon-dns-controller-manager
   namespace: rook-ceph
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
+      app.kubernetes.io/name: rook-mon-dns
       control-plane: controller-manager
   template:
     metadata:
       annotations:
         kubectl.kubernetes.io/default-container: manager
       labels:
-        app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
+        app.kubernetes.io/name: rook-mon-dns
         control-plane: controller-manager
     spec:
       containers:
@@ -549,7 +549,7 @@ spec:
         - --watch-namespaces=rook-ceph
         command:
         - /manager
-        image: ghcr.io/example/rook-ceph-mon-external-dns-publisher:v0.1.0
+        image: ghcr.io/example/rook-mon-dns:v0.1.0
         livenessProbe:
           httpGet:
             path: /healthz
@@ -584,7 +584,7 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
-      serviceAccountName: rook-ceph-mon-external-dns-publisher-controller-manager
+      serviceAccountName: rook-mon-dns-controller-manager
       terminationGracePeriodSeconds: 10
       volumes: []
 ---
@@ -593,8 +593,8 @@ kind: NetworkPolicy
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
-  name: rook-ceph-mon-external-dns-publisher-allow-health-probes
+    app.kubernetes.io/name: rook-mon-dns
+  name: rook-mon-dns-allow-health-probes
   namespace: rook-ceph
 spec:
   ingress:
@@ -603,7 +603,7 @@ spec:
       protocol: TCP
   podSelector:
     matchLabels:
-      app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
+      app.kubernetes.io/name: rook-mon-dns
       control-plane: controller-manager
   policyTypes:
   - Ingress
@@ -613,8 +613,8 @@ kind: NetworkPolicy
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
-  name: rook-ceph-mon-external-dns-publisher-allow-metrics-traffic
+    app.kubernetes.io/name: rook-mon-dns
+  name: rook-mon-dns-allow-metrics-traffic
   namespace: rook-ceph
 spec:
   ingress:
@@ -627,7 +627,7 @@ spec:
       protocol: TCP
   podSelector:
     matchLabels:
-      app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
+      app.kubernetes.io/name: rook-mon-dns
       control-plane: controller-manager
   policyTypes:
   - Ingress
@@ -637,8 +637,8 @@ kind: NetworkPolicy
 metadata:
   labels:
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
-  name: rook-ceph-mon-external-dns-publisher-restrict-egress
+    app.kubernetes.io/name: rook-mon-dns
+  name: rook-mon-dns-restrict-egress
   namespace: rook-ceph
 spec:
   egress:
@@ -659,7 +659,7 @@ spec:
           kubernetes.io/metadata.name: kube-system
   podSelector:
     matchLabels:
-      app.kubernetes.io/name: rook-ceph-mon-external-dns-publisher
+      app.kubernetes.io/name: rook-mon-dns
       control-plane: controller-manager
   policyTypes:
   - Egress

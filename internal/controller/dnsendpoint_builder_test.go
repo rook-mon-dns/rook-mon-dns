@@ -21,8 +21,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	cephmonsv1alpha1 "cephmons.github.io/rook-ceph-mon-external-dns-publisher/api/v1alpha1"
-	externaldnsv1alpha1 "cephmons.github.io/rook-ceph-mon-external-dns-publisher/internal/externaldns/v1alpha1"
+	cephmonsv1alpha1 "cephmons.github.io/rook-mon-dns/api/v1alpha1"
+	externaldnsv1alpha1 "cephmons.github.io/rook-mon-dns/internal/externaldns/v1alpha1"
 )
 
 // testMons mirrors the real Rook example: mons sorted by ID (g < j < l).

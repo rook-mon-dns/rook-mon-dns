@@ -40,9 +40,9 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	cephmonsv1alpha1 "cephmons.github.io/rook-ceph-mon-external-dns-publisher/api/v1alpha1"
-	"cephmons.github.io/rook-ceph-mon-external-dns-publisher/internal/controller"
-	externaldnsv1alpha1 "cephmons.github.io/rook-ceph-mon-external-dns-publisher/internal/externaldns/v1alpha1"
+	cephmonsv1alpha1 "cephmons.github.io/rook-mon-dns/api/v1alpha1"
+	"cephmons.github.io/rook-mon-dns/internal/controller"
+	externaldnsv1alpha1 "cephmons.github.io/rook-mon-dns/internal/externaldns/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
 

@@ -1,0 +1,18 @@
+{{- range .Values.watchNamespaces }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "rook-mon-dns.fullname" $ }}-manager-rolebinding
+  namespace: {{ . }}
+  labels:
+    {{- include "rook-mon-dns.labels" $ | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "rook-mon-dns.fullname" $ }}-manager-role
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "rook-mon-dns.serviceAccountName" $ }}
+    namespace: {{ $.Release.Namespace }}
+---
+{{- end }}
