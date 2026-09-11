@@ -31,3 +31,4 @@ go.work
 
 # nix-shell Go caches (shell.nix)
 .nix-go/
+.opencode/
