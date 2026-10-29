@@ -39,7 +39,7 @@ flowchart LR
     op -- "watches, updates status, emits Events" --> cr
     op -- "creates/updates (owner ref)" --> dnsep
     edns -- "watches" --> dnsep
-    edns -- "writes A (+ optional SRV) records" --> dns
+    edns -- "writes A/AAAA (+ optional SRV) records" --> dns
     client -- "resolves mon1…monN, mon-all, SRV (default names)" --> dns
     client -- "connects to mons on node IPs (msgr2 3300 / v1 6789)" --> mons
 ```
@@ -47,10 +47,11 @@ flowchart LR
 The operator only talks to the Kubernetes API server: it never contacts your
 DNS provider or Ceph directly. ExternalDNS does the actual DNS update.
 
-Rook stores the mon endpoints in the `rook-ceph-mon-endpoints` ConfigMap. The
-`data` field contains ClusterIPs (only usable inside the cluster), while the
-`mapping` field contains the mon-to-node assignment with real node IPs. The
-operator parses the mapping, sorts the mons by ID and publishes:
+Rook stores the mon endpoints in the `rook-ceph-mon-endpoints` ConfigMap: the
+`data` field lists each mon's IP and port, the `mapping` field the node each
+mon runs on with its node IP. With `hostNetwork` both IPs are the same and
+reachable from outside the cluster. The operator parses the mapping, sorts the
+mons by ID and publishes:
 
 | Record | Type | Content |
 |---|---|---|
@@ -67,8 +68,8 @@ The records are written into a single `DNSEndpoint` object per
 ## Prerequisites
 
 1. **Rook Ceph cluster with `hostNetwork: true`** – without host networking
-   the ConfigMap's `mapping` field is empty and there are no node IPs to
-   publish (the operator refuses to fall back to ClusterIPs).
+   the mons listen on ClusterIPs that are not reachable from outside. The
+   operator detects this (`HostNetworkRequired`) and publishes nothing.
 2. **DNSEndpoint CRD installed:**
    ```sh
    kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/external-dns/master/config/crd/standard/dnsendpoints.externaldns.k8s.io.yaml
@@ -161,7 +162,7 @@ published records, so a briefly broken ConfigMap does not take down mon DNS.
 |---|---|
 | `Synced` | DNS records are in sync with the ConfigMap |
 | `ConfigMapNotFound` | source ConfigMap missing (retries every minute) |
-| `MappingEmpty` | no node mapping – cluster without `hostNetwork`? |
+| `MappingEmpty` | the ConfigMap has no node mapping (mons not pinned to nodes) |
 | `MappingInvalid` | mapping field could not be parsed |
 | `HostNetworkRequired` | mon IPs differ from the node IPs: the mons are not on the host network |
 | `RecordNameConflict` | two records would get the same name (e.g. `allRecordName: mon1`) |

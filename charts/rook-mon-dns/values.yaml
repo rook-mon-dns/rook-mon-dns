@@ -34,7 +34,6 @@ networkPolicy:
   metricsNamespaceLabels:
     metrics: enabled
 
-# PSS-restricted-compliant; do not weaken unless you know why.
 resources:
   requests:
     cpu: 10m
