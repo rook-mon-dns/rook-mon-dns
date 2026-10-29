@@ -19,7 +19,7 @@ spec:
     name: rook-ceph-mon-endpoints
 
   # Per-monitor record names: mon1.ceph.example.com, mon2.ceph.example.com, ...
-  # Placeholders: {n} = stable sequence number (mons sorted by ID), {id} = Rook mon ID.
+  # Placeholders: {n} = sequence number (mons sorted by ID, can shift on failover), {id} = Rook mon ID.
   recordTemplate: "mon{n}"
 
   # Aggregate A record containing all mon node IPs. Set to "" to disable.

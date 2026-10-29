@@ -7,6 +7,7 @@ pkgs.mkShell {
     kustomize
     kubeconform
     kubectl
+    kind
     kubernetes-helm
     gnumake
     git

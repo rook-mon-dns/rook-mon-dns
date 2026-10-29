@@ -72,9 +72,9 @@ type CephMonDNSEndpointSpec struct {
 	Zone string `json:"zone"`
 
 	// recordTemplate is the per-monitor record name, relative to the zone.
-	// Supported placeholders: {n} = stable sequence number (monitors sorted
-	// by mon ID, starting at 1), {id} = Rook mon ID (unstable across
-	// failovers). Example: "mon{n}" results in "mon1.<zone>", "mon2.<zone>".
+	// Supported placeholders: {n} = sequence number (monitors sorted by mon
+	// ID, starting at 1; can shift when a mon is replaced), {id} = Rook mon
+	// ID. Example: "mon{n}" results in "mon1.<zone>", "mon2.<zone>".
 	// +kubebuilder:default="mon{n}"
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
