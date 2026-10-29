@@ -3,9 +3,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.21.0
-  name: cephmondnsendpoints.cephmons.github.io
+  name: cephmondnsendpoints.rook-mon-dns.github.io
 spec:
-  group: cephmons.github.io
+  group: rook-mon-dns.github.io
   names:
     kind: CephMonDNSEndpoint
     listKind: CephMonDNSEndpointList
@@ -319,7 +319,7 @@ rules:
   - create
   - patch
 - apiGroups:
-  - cephmons.github.io
+  - rook-mon-dns.github.io
   resources:
   - cephmondnsendpoints
   verbs:
@@ -327,13 +327,13 @@ rules:
   - list
   - watch
 - apiGroups:
-  - cephmons.github.io
+  - rook-mon-dns.github.io
   resources:
   - cephmondnsendpoints/finalizers
   verbs:
   - update
 - apiGroups:
-  - cephmons.github.io
+  - rook-mon-dns.github.io
   resources:
   - cephmondnsendpoints/status
   verbs:
@@ -362,13 +362,13 @@ metadata:
   name: rook-mon-dns-cephmondnsendpoint-admin-role
 rules:
 - apiGroups:
-  - cephmons.github.io
+  - rook-mon-dns.github.io
   resources:
   - cephmondnsendpoints
   verbs:
   - '*'
 - apiGroups:
-  - cephmons.github.io
+  - rook-mon-dns.github.io
   resources:
   - cephmondnsendpoints/status
   verbs:
@@ -383,7 +383,7 @@ metadata:
   name: rook-mon-dns-cephmondnsendpoint-editor-role
 rules:
 - apiGroups:
-  - cephmons.github.io
+  - rook-mon-dns.github.io
   resources:
   - cephmondnsendpoints
   verbs:
@@ -395,7 +395,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - cephmons.github.io
+  - rook-mon-dns.github.io
   resources:
   - cephmondnsendpoints/status
   verbs:
@@ -410,7 +410,7 @@ metadata:
   name: rook-mon-dns-cephmondnsendpoint-viewer-role
 rules:
 - apiGroups:
-  - cephmons.github.io
+  - rook-mon-dns.github.io
   resources:
   - cephmondnsendpoints
   verbs:
@@ -418,7 +418,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - cephmons.github.io
+  - rook-mon-dns.github.io
   resources:
   - cephmondnsendpoints/status
   verbs:
@@ -549,7 +549,7 @@ spec:
         - --watch-namespaces=rook-ceph
         command:
         - /manager
-        image: ghcr.io/example/rook-mon-dns:v0.1.0
+        image: ghcr.io/rook-mon-dns/rook-mon-dns:v0.1.0
         livenessProbe:
           httpGet:
             path: /healthz

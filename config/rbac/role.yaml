@@ -20,28 +20,6 @@ rules:
   - create
   - patch
 - apiGroups:
-  - cephmons.github.io
-  resources:
-  - cephmondnsendpoints
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - cephmons.github.io
-  resources:
-  - cephmondnsendpoints/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - cephmons.github.io
-  resources:
-  - cephmondnsendpoints/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
   - externaldns.k8s.io
   resources:
   - dnsendpoints
@@ -53,3 +31,25 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - rook-mon-dns.github.io
+  resources:
+  - cephmondnsendpoints
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - rook-mon-dns.github.io
+  resources:
+  - cephmondnsendpoints/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - rook-mon-dns.github.io
+  resources:
+  - cephmondnsendpoints/status
+  verbs:
+  - get
+  - patch
+  - update

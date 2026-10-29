@@ -36,8 +36,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	cephmonsv1alpha1 "cephmons.github.io/rook-mon-dns/api/v1alpha1"
-	externaldnsv1alpha1 "cephmons.github.io/rook-mon-dns/internal/externaldns/v1alpha1"
+	cephmonsv1alpha1 "github.com/rook-mon-dns/rook-mon-dns/api/v1alpha1"
+	externaldnsv1alpha1 "github.com/rook-mon-dns/rook-mon-dns/internal/externaldns/v1alpha1"
 )
 
 const (
@@ -73,9 +73,9 @@ type CephMonDNSEndpointReconciler struct {
 	AllowedZones []string
 }
 
-// +kubebuilder:rbac:groups=cephmons.github.io,resources=cephmondnsendpoints,verbs=get;list;watch
-// +kubebuilder:rbac:groups=cephmons.github.io,resources=cephmondnsendpoints/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=cephmons.github.io,resources=cephmondnsendpoints/finalizers,verbs=update
+// +kubebuilder:rbac:groups=rook-mon-dns.github.io,resources=cephmondnsendpoints,verbs=get;list;watch
+// +kubebuilder:rbac:groups=rook-mon-dns.github.io,resources=cephmondnsendpoints/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=rook-mon-dns.github.io,resources=cephmondnsendpoints/finalizers,verbs=update
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=externaldns.k8s.io,resources=dnsendpoints,verbs=get;list;watch;create;update;patch;delete

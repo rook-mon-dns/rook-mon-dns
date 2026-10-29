@@ -7,15 +7,15 @@ domain: github.io
 layout:
 - go.kubebuilder.io/v4
 projectName: rook-mon-dns
-repo: cephmons.github.io/rook-mon-dns
+repo: github.com/rook-mon-dns/rook-mon-dns
 resources:
 - api:
     crdVersion: v1
     namespaced: true
   controller: true
   domain: github.io
-  group: cephmons
+  group: rook-mon-dns
   kind: CephMonDNSEndpoint
-  path: cephmons.github.io/rook-mon-dns/api/v1alpha1
+  path: github.com/rook-mon-dns/rook-mon-dns/api/v1alpha1
   version: v1alpha1
 version: "3"

@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.21.0
-  name: cephmondnsendpoints.cephmons.github.io
+  name: cephmondnsendpoints.rook-mon-dns.github.io
 spec:
-  group: cephmons.github.io
+  group: rook-mon-dns.github.io
   names:
     kind: CephMonDNSEndpoint
     listKind: CephMonDNSEndpointList

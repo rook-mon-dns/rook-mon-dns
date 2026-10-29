@@ -1,7 +1,7 @@
 # This rule is not used by the project rook-mon-dns itself.
 # It is provided to allow the cluster admin to help manage permissions for users.
 #
-# Grants read-only access to cephmons.github.io resources.
+# Grants read-only access to rook-mon-dns.github.io resources.
 # This role is intended for users who need visibility into these resources
 # without permissions to modify them. It is ideal for monitoring purposes and limited-access viewing.
 
@@ -14,7 +14,7 @@ metadata:
   name: cephmondnsendpoint-viewer-role
 rules:
 - apiGroups:
-  - cephmons.github.io
+  - rook-mon-dns.github.io
   resources:
   - cephmondnsendpoints
   verbs:
@@ -22,7 +22,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - cephmons.github.io
+  - rook-mon-dns.github.io
   resources:
   - cephmondnsendpoints/status
   verbs:
