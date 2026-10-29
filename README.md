@@ -50,14 +50,16 @@ DNS provider or Ceph directly. ExternalDNS does the actual DNS update.
 Rook stores the mon endpoints in the `rook-ceph-mon-endpoints` ConfigMap. The
 `data` field contains ClusterIPs (only usable inside the cluster), while the
 `mapping` field contains the mon-to-node assignment with real node IPs. The
-operator parses the mapping, sorts the mons by ID (Rook mon IDs change on
-failover, so the generated names stay stable) and publishes:
+operator parses the mapping, sorts the mons by ID and publishes:
 
 | Record | Type | Content |
 |---|---|---|
 | `mon1.<zone>` … `monN.<zone>` | A | one record per mon, sorted by mon ID |
 | `mon-all.<zone>` | A | all mon node IPs in one record (round-robin) |
 | `_ceph-mon._tcp.<zone>` | SRV | optional, for Ceph client discovery via `mon dns srv name` |
+
+When a mon is replaced, the numbering of the other mons can shift, so point
+clients at `mon-all` or the SRV record (see [design notes](docs/design.md)).
 
 The records are written into a single `DNSEndpoint` object per
 `CephMonDNSEndpoint` resource; ExternalDNS picks it up from there.
