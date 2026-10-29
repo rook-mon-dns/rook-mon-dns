@@ -21,7 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"net/netip"
-	"sort"
+	"slices"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -116,7 +116,7 @@ func ParseMonEndpoints(cm *corev1.ConfigMap) ([]MonEndpoint, error) {
 		})
 	}
 
-	sort.Slice(endpoints, func(i, j int) bool { return endpoints[i].ID < endpoints[j].ID })
+	slices.SortFunc(endpoints, func(a, b MonEndpoint) int { return strings.Compare(a.ID, b.ID) })
 	return endpoints, nil
 }
 
@@ -124,7 +124,7 @@ func ParseMonEndpoints(cm *corev1.ConfigMap) ([]MonEndpoint, error) {
 // a mon-ID-to-port map. Entries that cannot be parsed are skipped.
 func parseMonPorts(data string) map[string]int {
 	ports := make(map[string]int)
-	for _, entry := range strings.Split(data, ",") {
+	for entry := range strings.SplitSeq(data, ",") {
 		entry = strings.TrimSpace(entry)
 		if entry == "" {
 			continue

@@ -20,7 +20,7 @@ rules:
     resources: ["configmaps"]
     verbs: ["get", "list", "watch"]
   # Events emitted by the reconciler
-  - apiGroups: [""]
+  - apiGroups: ["events.k8s.io"]
     resources: ["events"]
     verbs: ["create", "patch"]
   # The operator's own CRs

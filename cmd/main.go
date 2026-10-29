@@ -63,7 +63,7 @@ func init() {
 // non-empty parts.
 func parseCommaSeparated(value string) []string {
 	var out []string
-	for _, part := range strings.Split(value, ",") {
+	for part := range strings.SplitSeq(value, ",") {
 		if part = strings.TrimSpace(part); part != "" {
 			out = append(out, part)
 		}
@@ -248,7 +248,7 @@ func main() {
 	if err := (&controller.CephMonDNSEndpointReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
-		Recorder:     mgr.GetEventRecorderFor("cephmondnsendpoint-controller"),
+		Recorder:     mgr.GetEventRecorder("cephmondnsendpoint-controller"),
 		AllowedZones: parseCommaSeparated(allowedZones),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "Failed to create controller", "controller", "cephmondnsendpoint")

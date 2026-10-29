@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -88,7 +88,7 @@ func newFakeReconciler(t *testing.T, allowedZones []string, objs ...client.Objec
 	return &CephMonDNSEndpointReconciler{
 		Client:       cl,
 		Scheme:       scheme,
-		Recorder:     record.NewFakeRecorder(16),
+		Recorder:     events.NewFakeRecorder(16),
 		AllowedZones: allowedZones,
 	}
 }
