@@ -27,16 +27,16 @@ flowchart LR
 
     rook -- "writes mon → node mapping" --> cm
     op -- "watches" --> cm
-    op -- "watches, updates status" --> cr
+    op -- "watches, updates status, emits Events" --> cr
     op -- "creates/updates (owner ref)" --> dnsep
     edns -- "watches" --> dnsep
-    edns -- "writes A/SRV records" --> dns
-    client -- "resolves mon1…monN, mon-all" --> dns
-    client -- "connects 3300/6789 to node IPs" --> mons
+    edns -- "writes A (+ optional SRV) records" --> dns
+    client -- "resolves mon1…monN, mon-all, SRV (default names)" --> dns
+    client -- "connects to mons on node IPs (msgr2 3300 / v1 6789)" --> mons
 ```
 
-The operator only talks to the Kubernetes API server: it never contacts DNS
-or Ceph directly. ExternalDNS does the actual DNS update.
+The operator only talks to the Kubernetes API server: it never contacts your
+DNS provider or Ceph directly. ExternalDNS does the actual DNS update.
 
 Rook stores the mon endpoints in the `rook-ceph-mon-endpoints` ConfigMap. The
 `data` field contains ClusterIPs (only usable inside the cluster), while the
