@@ -134,18 +134,18 @@ its `DNSEndpoint` (owner reference), and ExternalDNS removes the DNS records.
 
 ## Development
 
-The toolchain is provided by `shell.nix` (go, kubebuilder, kustomize,
-kubeconform, kubectl, helm, make):
+Requirements: Go (version in `go.mod`), make, Docker and
+[kind](https://kind.sigs.k8s.io/) for the e2e tests. Other tools (controller-gen,
+kustomize, envtest, golangci-lint) are downloaded into `bin/` by `make`. With
+Nix, `nix-shell` provides everything.
 
 ```sh
-nix-shell
-
-make test              # unit + envtest integration tests
-make run               # run locally against your current kubeconfig
+make test               # unit + envtest integration tests
+make test-e2e           # end-to-end tests in a throwaway kind cluster
+make lint               # golangci-lint
+make run                # run locally against your current kubeconfig
 make manifests generate # regenerate CRDs/RBAC/deepcopy after type changes
 ```
-
-After a reboot (Go caches live in `/tmp`): just `nix-shell --run 'go mod download'`.
 
 ## Status conditions
 

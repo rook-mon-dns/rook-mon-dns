@@ -28,11 +28,3 @@ go.work
 
 # Kubeconfig might contain secrets
 *.kubeconfig
-
-# nix-shell Go caches (shell.nix)
-.nix-go/
-.opencode/
-
-# Local AI agent notes (not published)
-AGENTS.md
-PLAN.md
