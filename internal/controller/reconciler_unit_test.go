@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"testing"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -144,8 +145,8 @@ func TestReconcileHappyPath(t *testing.T) {
 	if cond == nil || cond.Status != metav1.ConditionTrue || cond.Reason != ReasonSynced {
 		t.Errorf("Ready condition: got %+v, want True/%s", cond, ReasonSynced)
 	}
-	if len(cr.Status.PublishedEndpoints) != 3 {
-		t.Errorf("got %d published endpoints, want 3", len(cr.Status.PublishedEndpoints))
+	if len(cr.Status.PublishedEndpoints) != 5 {
+		t.Errorf("got %d published endpoints, want 5", len(cr.Status.PublishedEndpoints))
 	}
 	if cr.Status.ObservedGeneration != 1 {
 		t.Errorf("observedGeneration %d, want 1", cr.Status.ObservedGeneration)
@@ -157,8 +158,8 @@ func TestReconcileConfigMapNotFound(t *testing.T) {
 
 	result := reconcileOnce(t, r)
 
-	if result.RequeueAfter != configMapNotFoundRequeue {
-		t.Errorf("requeueAfter %v, want %v", result.RequeueAfter, configMapNotFoundRequeue)
+	if result.RequeueAfter != retryInterval {
+		t.Errorf("requeueAfter %v, want %v", result.RequeueAfter, retryInterval)
 	}
 	cond := readyCondition(getCR(t, r))
 	if cond == nil || cond.Status != metav1.ConditionFalse || cond.Reason != ReasonConfigMapNotFound {
@@ -185,17 +186,108 @@ func TestReconcileMappingEmpty(t *testing.T) {
 	}
 }
 
-func TestReconcileCrossNamespaceDenied(t *testing.T) {
+func TestReconcileHostNetworkRequired(t *testing.T) {
+	cm := realConfigMap()
+	cm.Data[ConfigMapDataKey] = podNetworkData
+	r := newFakeReconciler(t, nil, newTestCR(), cm)
+
+	reconcileOnce(t, r)
+
+	cond := readyCondition(getCR(t, r))
+	if cond == nil || cond.Status != metav1.ConditionFalse || cond.Reason != ReasonHostNetworkRequired {
+		t.Errorf("Ready condition: got %+v, want False/%s", cond, ReasonHostNetworkRequired)
+	}
+	ep := &externaldnsv1alpha1.DNSEndpoint{}
+	if err := r.Get(reconcileCtx, types.NamespacedName{Name: "rook-ceph", Namespace: "rook-ceph"}, ep); err == nil {
+		t.Error("DNSEndpoint was created for mons on the pod network")
+	}
+}
+
+func TestReconcileKeepsRecordsOnBrokenConfigMap(t *testing.T) {
+	r := newFakeReconciler(t, nil, newTestCR(), realConfigMap())
+	reconcileOnce(t, r)
+
+	// Rook briefly writes an empty mapping (e.g. during a mon failover).
+	cm := realConfigMap()
+	cm.Data[ConfigMapMappingKey] = ""
+	if err := r.Update(reconcileCtx, cm); err != nil {
+		t.Fatal(err)
+	}
+	reconcileOnce(t, r)
+
+	if got := len(getDNSEndpoint(t, r).Spec.Endpoints); got != 5 {
+		t.Errorf("got %d endpoints after broken ConfigMap, want the previous 5", got)
+	}
+	cr := getCR(t, r)
+	if cond := readyCondition(cr); cond == nil || cond.Reason != ReasonMappingEmpty {
+		t.Errorf("Ready condition: got %+v, want False/%s", cond, ReasonMappingEmpty)
+	}
+	if len(cr.Status.PublishedEndpoints) != 5 {
+		t.Errorf("got %d published endpoints, want the previous 5", len(cr.Status.PublishedEndpoints))
+	}
+}
+
+func TestReconcileRecordNameConflict(t *testing.T) {
 	cr := newTestCR(func(cr *cephmonsv1alpha1.CephMonDNSEndpoint) {
-		cr.Spec.ConfigMapRef.Namespace = "other-namespace"
+		cr.Spec.AllRecordName = "mon1"
 	})
 	r := newFakeReconciler(t, nil, cr, realConfigMap())
 
 	reconcileOnce(t, r)
 
-	cond := readyCondition(getCR(t, r))
-	if cond == nil || cond.Status != metav1.ConditionFalse || cond.Reason != ReasonCrossNamespaceRefDenied {
-		t.Errorf("Ready condition: got %+v, want False/%s", cond, ReasonCrossNamespaceRefDenied)
+	if cond := readyCondition(getCR(t, r)); cond == nil || cond.Reason != ReasonRecordNameConflict {
+		t.Errorf("Ready condition: got %+v, want False/%s", cond, ReasonRecordNameConflict)
+	}
+}
+
+// foreignDNSEndpoint is a DNSEndpoint with the CR's name that someone else
+// created.
+func foreignDNSEndpoint() *externaldnsv1alpha1.DNSEndpoint {
+	return &externaldnsv1alpha1.DNSEndpoint{
+		ObjectMeta: metav1.ObjectMeta{Name: "rook-ceph", Namespace: "rook-ceph"},
+		Spec: externaldnsv1alpha1.DNSEndpointSpec{Endpoints: []*externaldnsv1alpha1.Endpoint{
+			{DNSName: "other.example.com", RecordType: "A", Targets: externaldnsv1alpha1.Targets{"192.0.2.1"}},
+		}},
+	}
+}
+
+func TestReconcileDoesNotTakeOverForeignDNSEndpoint(t *testing.T) {
+	r := newFakeReconciler(t, nil, newTestCR(), realConfigMap(), foreignDNSEndpoint())
+
+	result := reconcileOnce(t, r)
+
+	if cond := readyCondition(getCR(t, r)); cond == nil || cond.Reason != ReasonDNSEndpointConflict {
+		t.Errorf("Ready condition: got %+v, want False/%s", cond, ReasonDNSEndpointConflict)
+	}
+	if result.RequeueAfter != retryInterval {
+		t.Errorf("requeueAfter %v, want %v", result.RequeueAfter, retryInterval)
+	}
+	ep := getDNSEndpoint(t, r)
+	if len(ep.Spec.Endpoints) != 1 || ep.Spec.Endpoints[0].DNSName != "other.example.com" {
+		t.Errorf("foreign DNSEndpoint was modified: %+v", ep.Spec.Endpoints)
+	}
+}
+
+func TestReconcileRejectionKeepsForeignDNSEndpoint(t *testing.T) {
+	r := newFakeReconciler(t, []string{"other.example.com"}, newTestCR(), realConfigMap(), foreignDNSEndpoint())
+
+	reconcileOnce(t, r)
+
+	getDNSEndpoint(t, r) // must still exist
+}
+
+func TestReconcileSkipsCRBeingDeleted(t *testing.T) {
+	cr := newTestCR(func(cr *cephmonsv1alpha1.CephMonDNSEndpoint) {
+		cr.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+		cr.Finalizers = []string{"foregroundDeletion"}
+	})
+	r := newFakeReconciler(t, nil, cr, realConfigMap())
+
+	reconcileOnce(t, r)
+
+	ep := &externaldnsv1alpha1.DNSEndpoint{}
+	if err := r.Get(reconcileCtx, types.NamespacedName{Name: "rook-ceph", Namespace: "rook-ceph"}, ep); err == nil {
+		t.Error("DNSEndpoint was recreated for a CR that is being deleted")
 	}
 }
 
@@ -227,6 +319,7 @@ func TestReconcileUpdatesOnConfigMapChange(t *testing.T) {
 		`"g":{"Name":"talos-node-04","Hostname":"talos-node-04","Address":"192.168.1.110"},` +
 		`"j":{"Name":"talos-node-03","Hostname":"talos-node-03","Address":"192.168.1.107"},` +
 		`"l":{"Name":"talos-node-02","Hostname":"talos-node-02","Address":"192.168.1.105"}}}`
+	cm.Data[ConfigMapDataKey] = "g=192.168.1.110:6789,l=192.168.1.105:6789,j=192.168.1.107:6789"
 	if err := r.Update(reconcileCtx, cm); err != nil {
 		t.Fatal(err)
 	}
@@ -271,6 +364,13 @@ func TestZoneAllowed(t *testing.T) {
 	r.AllowedZones = []string{"ceph.example.com", "storage.example.com"}
 	if !r.zoneAllowed("ceph.example.com") {
 		t.Error("listed zone must be allowed")
+	}
+	if !r.zoneAllowed("storage.example.com") {
+		t.Error("listed zone must be allowed")
+	}
+	r.AllowedZones = []string{"Ceph.Example.com."}
+	if !r.zoneAllowed("ceph.example.com") {
+		t.Error("allowlist entries must match case-insensitively and without trailing dot")
 	}
 	if r.zoneAllowed("other.example.com") {
 		t.Error("unlisted zone must be denied")

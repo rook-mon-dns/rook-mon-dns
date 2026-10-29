@@ -54,9 +54,9 @@ operator parses the mapping, sorts the mons by ID and publishes:
 
 | Record | Type | Content |
 |---|---|---|
-| `mon1.<zone>` … `monN.<zone>` | A | one record per mon, sorted by mon ID |
-| `mon-all.<zone>` | A | all mon node IPs in one record (round-robin) |
-| `_ceph-mon._tcp.<zone>` | SRV | optional, for Ceph client discovery via `mon dns srv name` |
+| `mon1.<zone>` … `monN.<zone>` | A/AAAA | one record per mon, sorted by mon ID |
+| `mon-all.<zone>` | A/AAAA | all mon node IPs in one record (round-robin) |
+| `_ceph-mon._tcp.<zone>` | SRV | optional, for Ceph client discovery via `mon dns srv name`; port per mon from the ConfigMap (6789 or 3300) |
 
 When a mon is replaced, the numbering of the other mons can shift, so point
 clients at `mon-all` or the SRV record (see [design notes](docs/design.md)).
@@ -149,14 +149,19 @@ After a reboot (Go caches live in `/tmp`): just `nix-shell --run 'go mod downloa
 
 ## Status conditions
 
+Except for `ZoneNotAllowed`, a `Ready=False` reason keeps the previously
+published records, so a briefly broken ConfigMap does not take down mon DNS.
+
 | Reason | Meaning |
 |---|---|
 | `Synced` | DNS records are in sync with the ConfigMap |
-| `ConfigMapNotFound` | source ConfigMap missing (requeues) |
+| `ConfigMapNotFound` | source ConfigMap missing (retries every minute) |
 | `MappingEmpty` | no node mapping – cluster without `hostNetwork`? |
 | `MappingInvalid` | mapping field could not be parsed |
-| `CrossNamespaceRefDenied` | references must stay in the CR namespace |
-| `ZoneNotAllowed` | zone not in `--allowed-zones` |
+| `HostNetworkRequired` | mon IPs differ from the node IPs: the mons are not on the host network |
+| `RecordNameConflict` | two records would get the same name (e.g. `allRecordName: mon1`) |
+| `DNSEndpointConflict` | a `DNSEndpoint` with the CR's name exists and belongs to someone else |
+| `ZoneNotAllowed` | zone not in `--allowed-zones`; the records are removed |
 
 ## License
 

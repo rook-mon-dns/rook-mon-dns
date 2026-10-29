@@ -17,7 +17,9 @@ limitations under the License.
 package controller
 
 import (
+	"errors"
 	"fmt"
+	"net/netip"
 	"strconv"
 	"strings"
 
@@ -27,36 +29,44 @@ import (
 	externaldnsv1alpha1 "github.com/rook-mon-dns/rook-mon-dns/internal/externaldns/v1alpha1"
 )
 
+// ErrRecordNameConflict is returned when two records of the same type would
+// get the same DNS name (e.g. allRecordName "mon1" with template "mon{n}").
+var ErrRecordNameConflict = errors.New("record name conflict")
+
 // BuildDNSEndpoint computes the desired DNSEndpoint object for the given
 // CephMonDNSEndpoint and the parsed mon endpoints. mons must be sorted by mon
 // ID (ParseMonEndpoints already guarantees this). The result is deterministic.
-func BuildDNSEndpoint(cr *cephmonsv1alpha1.CephMonDNSEndpoint, mons []MonEndpoint) *externaldnsv1alpha1.DNSEndpoint {
+func BuildDNSEndpoint(cr *cephmonsv1alpha1.CephMonDNSEndpoint, mons []MonEndpoint) (*externaldnsv1alpha1.DNSEndpoint, error) {
 	spec := cr.Spec
 	ttl := externaldnsv1alpha1.TTL(spec.TTL)
 
-	endpoints := make([]*externaldnsv1alpha1.Endpoint, 0, len(mons)+2)
+	endpoints := make([]*externaldnsv1alpha1.Endpoint, 0, len(mons)+3)
 
-	// One A record per monitor: mon1.<zone>, mon2.<zone>, ...
+	// One A/AAAA record per monitor: mon1.<zone>, mon2.<zone>, ...
 	monDNSNames := make([]string, 0, len(mons))
 	for i, mon := range mons {
 		dnsName := fqdn(renderRecordTemplate(spec.RecordTemplate, i+1, mon.ID), spec.Zone)
 		monDNSNames = append(monDNSNames, dnsName)
 		endpoints = append(endpoints, &externaldnsv1alpha1.Endpoint{
 			DNSName:    dnsName,
-			RecordType: externaldnsv1alpha1.RecordTypeA,
+			RecordType: recordType(mon.Address),
 			RecordTTL:  ttl,
 			Targets:    externaldnsv1alpha1.Targets{mon.Address},
 		})
 	}
 
-	// Aggregate A record with all monitor node IPs.
+	// Aggregate record with all monitor node IPs, one per address family.
 	if spec.AllRecordName != "" {
-		endpoints = append(endpoints, &externaldnsv1alpha1.Endpoint{
-			DNSName:    fqdn(spec.AllRecordName, spec.Zone),
-			RecordType: externaldnsv1alpha1.RecordTypeA,
-			RecordTTL:  ttl,
-			Targets:    dedupeAddresses(mons),
-		})
+		for _, rt := range []string{externaldnsv1alpha1.RecordTypeA, externaldnsv1alpha1.RecordTypeAAAA} {
+			if targets := dedupeAddresses(mons, rt); len(targets) > 0 {
+				endpoints = append(endpoints, &externaldnsv1alpha1.Endpoint{
+					DNSName:    fqdn(spec.AllRecordName, spec.Zone),
+					RecordType: rt,
+					RecordTTL:  ttl,
+					Targets:    targets,
+				})
+			}
+		}
 	}
 
 	// Optional SRV record for Ceph mon discovery ("mon dns srv name").
@@ -74,25 +84,34 @@ func BuildDNSEndpoint(cr *cephmonsv1alpha1.CephMonDNSEndpoint, mons []MonEndpoin
 		})
 	}
 
+	seen := make(map[string]bool, len(endpoints))
+	for _, ep := range endpoints {
+		key := ep.RecordType + " " + ep.DNSName
+		if seen[key] {
+			return nil, fmt.Errorf("%w: %s record %s is generated twice", ErrRecordNameConflict, ep.RecordType, ep.DNSName)
+		}
+		seen[key] = true
+	}
+
 	return &externaldnsv1alpha1.DNSEndpoint{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cr.Name,
-			Namespace: targetNamespace(cr),
+			Namespace: cr.Namespace,
 			Labels: map[string]string{
 				"app.kubernetes.io/name":       "rook-mon-dns",
 				"app.kubernetes.io/managed-by": "rook-mon-dns",
 			},
 		},
 		Spec: externaldnsv1alpha1.DNSEndpointSpec{Endpoints: endpoints},
-	}
+	}, nil
 }
 
-// targetNamespace returns the namespace the DNSEndpoint is created in.
-func targetNamespace(cr *cephmonsv1alpha1.CephMonDNSEndpoint) string {
-	if cr.Spec.TargetNamespace != "" {
-		return cr.Spec.TargetNamespace
+// recordType returns AAAA for IPv6 addresses and A otherwise.
+func recordType(address string) string {
+	if addr, err := netip.ParseAddr(address); err == nil && addr.Is6() {
+		return externaldnsv1alpha1.RecordTypeAAAA
 	}
-	return cr.Namespace
+	return externaldnsv1alpha1.RecordTypeA
 }
 
 // renderRecordTemplate expands the {n} (sequence number) and {id} (mon ID)
@@ -106,13 +125,13 @@ func fqdn(name, zone string) string {
 	return strings.TrimSuffix(name, ".") + "." + zone
 }
 
-// dedupeAddresses returns the mon addresses without duplicates, preserving
-// the order of the sorted mon list.
-func dedupeAddresses(mons []MonEndpoint) externaldnsv1alpha1.Targets {
+// dedupeAddresses returns the mon addresses of the given record type without
+// duplicates, preserving the order of the sorted mon list.
+func dedupeAddresses(mons []MonEndpoint, rt string) externaldnsv1alpha1.Targets {
 	seen := make(map[string]struct{}, len(mons))
 	targets := make(externaldnsv1alpha1.Targets, 0, len(mons))
 	for _, mon := range mons {
-		if _, ok := seen[mon.Address]; ok {
+		if _, ok := seen[mon.Address]; ok || recordType(mon.Address) != rt {
 			continue
 		}
 		seen[mon.Address] = struct{}{}

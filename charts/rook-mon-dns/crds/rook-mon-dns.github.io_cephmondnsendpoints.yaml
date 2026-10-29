@@ -57,8 +57,9 @@ spec:
                 description: |-
                   allRecordName is an additional A record (relative to the zone) that
                   contains all monitor node IPs at once. Set to an empty string to
-                  disable the aggregate record.
+                  disable the aggregate record. Must not collide with a per-monitor name.
                 maxLength: 253
+                pattern: ^$|^([a-z0-9]([-a-z0-9]*[a-z0-9])?[.])*[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                 type: string
               configMapRef:
                 default: {}
@@ -69,11 +70,6 @@ spec:
                     description: name of the ConfigMap that contains the Rook Ceph
                       mon endpoints.
                     minLength: 1
-                    type: string
-                  namespace:
-                    description: |-
-                      namespace of the ConfigMap. Must be empty or equal to the namespace of
-                      this CephMonDNSEndpoint (enforced by the operator).
                     type: string
                 type: object
               recordTemplate:
@@ -90,6 +86,8 @@ spec:
                 - message: recordTemplate must contain at least one of the placeholders
                     {n} or {id}
                   rule: self.contains('{n}') || self.contains('{id}')
+                - message: recordTemplate must render to a lowercase DNS name
+                  rule: self.replace('{n}', '1').replace('{id}', 'a').matches('^([a-z0-9]([-a-z0-9]*[a-z0-9])?[.])*[a-z0-9]([-a-z0-9]*[a-z0-9])?$')
               srv:
                 default: {}
                 description: srv configures the optional SRV record used for Ceph
@@ -106,15 +104,11 @@ spec:
                     description: |-
                       name of the SRV record, relative to the zone (e.g. "_ceph-mon._tcp"
                       results in "_ceph-mon._tcp.<zone>").
+                    maxLength: 253
                     minLength: 1
+                    pattern: ^(_?[a-z0-9]([-a-z0-9]*[a-z0-9])?[.])*_?[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                     type: string
                 type: object
-              targetNamespace:
-                description: |-
-                  targetNamespace is the namespace the DNSEndpoint object is created in.
-                  Must be empty or equal to the namespace of this CephMonDNSEndpoint
-                  (enforced by the operator).
-                type: string
               ttl:
                 default: 300
                 description: ttl of the published DNS records in seconds.
@@ -216,23 +210,26 @@ spec:
                   operator.
                 items:
                   description: PublishedEndpoint describes a single published DNS
-                    record target.
+                    record.
                   properties:
                     dnsName:
                       description: dnsName is the fully qualified DNS name of the
                         record.
                       type: string
-                    monId:
-                      description: |-
-                        monId is the Rook mon ID this record belongs to (empty for the
-                        aggregate record).
+                    recordType:
+                      description: recordType is the DNS record type (A, AAAA or SRV).
                       type: string
-                    target:
-                      description: target is the published node IP.
-                      type: string
+                    targets:
+                      description: targets are the record values (node IPs, or SRV
+                        targets).
+                      items:
+                        type: string
+                      type: array
+                      x-kubernetes-list-type: atomic
                   required:
                   - dnsName
-                  - target
+                  - recordType
+                  - targets
                   type: object
                 type: array
                 x-kubernetes-list-type: atomic

@@ -29,13 +29,13 @@ spec:
           protocol: TCP
     {{- end }}
   egress:
-    # Kubernetes API server
-    - to:
-        - ipBlock:
-            cidr: {{ .Values.networkPolicy.apiServerCIDR }}
-      ports:
-        - port: 443
+    # Kubernetes API server, port-based: CNIs evaluate egress after the
+    # service IP was translated to the API server endpoint.
+    - ports:
+        {{- range .Values.networkPolicy.apiServerPorts }}
+        - port: {{ . }}
           protocol: TCP
+        {{- end }}
     # DNS resolution (CoreDNS/kube-system), as a safety net
     - to:
         - namespaceSelector:

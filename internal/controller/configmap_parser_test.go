@@ -24,14 +24,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// realMapping and realData are the actual contents of a
-// rook-ceph-mon-endpoints ConfigMap (Rook on Talos, hostNetwork).
+// realMapping is the mapping of a real rook-ceph-mon-endpoints ConfigMap.
 const realMapping = `{"node":{` +
 	`"g":{"Name":"talos-node-01","Hostname":"talos-node-01","Address":"192.168.1.103"},` +
 	`"j":{"Name":"talos-node-03","Hostname":"talos-node-03","Address":"192.168.1.107"},` +
 	`"l":{"Name":"talos-node-02","Hostname":"talos-node-02","Address":"192.168.1.105"}}}`
 
-const realData = "g=10.109.56.143:6789,l=10.97.138.166:6789,j=10.97.18.232:6789"
+// realData is the data field for realMapping with hostNetwork mons: the mon
+// IPs are the node addresses.
+const realData = "g=192.168.1.103:6789,l=192.168.1.105:6789,j=192.168.1.107:6789"
+
+// podNetworkData is the data field of the same cluster without hostNetwork:
+// the mons listen on ClusterIPs, not on the node addresses.
+const podNetworkData = "g=10.109.56.143:6789,l=10.97.138.166:6789,j=10.97.18.232:6789"
 
 func configMap(data map[string]string) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
@@ -54,10 +59,18 @@ func TestParseMonEndpoints(t *testing.T) {
 				ConfigMapDataKey:    realData,
 			},
 			want: []MonEndpoint{
-				{ID: "g", NodeName: "talos-node-01", Address: "192.168.1.103", Port: 6789},
-				{ID: "j", NodeName: "talos-node-03", Address: "192.168.1.107", Port: 6789},
-				{ID: "l", NodeName: "talos-node-02", Address: "192.168.1.105", Port: 6789},
+				{ID: "g", Address: "192.168.1.103", Port: 6789},
+				{ID: "j", Address: "192.168.1.107", Port: 6789},
+				{ID: "l", Address: "192.168.1.105", Port: 6789},
 			},
+		},
+		{
+			name: "mons on the pod network are rejected",
+			data: map[string]string{
+				ConfigMapMappingKey: realMapping,
+				ConfigMapDataKey:    podNetworkData,
+			},
+			wantErr: ErrHostNetworkRequired,
 		},
 		{
 			name:    "empty mapping string",
@@ -83,28 +96,29 @@ func TestParseMonEndpoints(t *testing.T) {
 			name: "missing data key falls back to default port",
 			data: map[string]string{ConfigMapMappingKey: realMapping},
 			want: []MonEndpoint{
-				{ID: "g", NodeName: "talos-node-01", Address: "192.168.1.103", Port: DefaultMonPort},
-				{ID: "j", NodeName: "talos-node-03", Address: "192.168.1.107", Port: DefaultMonPort},
-				{ID: "l", NodeName: "talos-node-02", Address: "192.168.1.105", Port: DefaultMonPort},
+				{ID: "g", Address: "192.168.1.103", Port: DefaultMonPort},
+				{ID: "j", Address: "192.168.1.107", Port: DefaultMonPort},
+				{ID: "l", Address: "192.168.1.105", Port: DefaultMonPort},
 			},
 		},
 		{
 			name: "custom port is parsed from data",
 			data: map[string]string{
 				ConfigMapMappingKey: `{"node":{"a":{"Name":"n1","Hostname":"n1","Address":"192.168.1.10"}}}`,
-				ConfigMapDataKey:    "a=10.0.0.1:3300",
+				ConfigMapDataKey:    "a=192.168.1.10:3300",
 			},
 			want: []MonEndpoint{
-				{ID: "a", NodeName: "n1", Address: "192.168.1.10", Port: 3300},
+				{ID: "a", Address: "192.168.1.10", Port: 3300},
 			},
 		},
 		{
-			name: "hostname fallback when Name is empty",
+			name: "IPv4-mapped IPv6 addresses are unmapped",
 			data: map[string]string{
-				ConfigMapMappingKey: `{"node":{"a":{"Name":"","Hostname":"host-1","Address":"192.168.1.10"}}}`,
+				ConfigMapMappingKey: `{"node":{"a":{"Name":"n1","Hostname":"n1","Address":"::ffff:192.168.1.10"}}}`,
+				ConfigMapDataKey:    "a=192.168.1.10:6789",
 			},
 			want: []MonEndpoint{
-				{ID: "a", NodeName: "host-1", Address: "192.168.1.10", Port: DefaultMonPort},
+				{ID: "a", Address: "192.168.1.10", Port: 6789},
 			},
 		},
 		{
@@ -116,9 +130,9 @@ func TestParseMonEndpoints(t *testing.T) {
 					`"b":{"Name":"n2","Hostname":"n2","Address":"192.168.1.11"}}}`,
 			},
 			want: []MonEndpoint{
-				{ID: "a", NodeName: "n1", Address: "192.168.1.10", Port: DefaultMonPort},
-				{ID: "b", NodeName: "n2", Address: "192.168.1.11", Port: DefaultMonPort},
-				{ID: "c", NodeName: "n3", Address: "192.168.1.12", Port: DefaultMonPort},
+				{ID: "a", Address: "192.168.1.10", Port: DefaultMonPort},
+				{ID: "b", Address: "192.168.1.11", Port: DefaultMonPort},
+				{ID: "c", Address: "192.168.1.12", Port: DefaultMonPort},
 			},
 		},
 	}

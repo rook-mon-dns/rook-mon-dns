@@ -17,6 +17,7 @@ limitations under the License.
 package controller
 
 import (
+	"errors"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,9 +28,9 @@ import (
 
 // testMons mirrors the real Rook example: mons sorted by ID (g < j < l).
 var testMons = []MonEndpoint{
-	{ID: "g", NodeName: "talos-node-01", Address: "192.168.1.103", Port: 6789},
-	{ID: "j", NodeName: "talos-node-03", Address: "192.168.1.107", Port: 6789},
-	{ID: "l", NodeName: "talos-node-02", Address: "192.168.1.105", Port: 6789},
+	{ID: "g", Address: "192.168.1.103", Port: 6789},
+	{ID: "j", Address: "192.168.1.107", Port: 6789},
+	{ID: "l", Address: "192.168.1.105", Port: 6789},
 }
 
 func newCR(mutators ...func(*cephmonsv1alpha1.CephMonDNSEndpoint)) *cephmonsv1alpha1.CephMonDNSEndpoint {
@@ -49,6 +50,15 @@ func newCR(mutators ...func(*cephmonsv1alpha1.CephMonDNSEndpoint)) *cephmonsv1al
 	return cr
 }
 
+func mustBuild(t *testing.T, cr *cephmonsv1alpha1.CephMonDNSEndpoint, mons []MonEndpoint) *externaldnsv1alpha1.DNSEndpoint {
+	t.Helper()
+	ep, err := BuildDNSEndpoint(cr, mons)
+	if err != nil {
+		t.Fatalf("BuildDNSEndpoint: %v", err)
+	}
+	return ep
+}
+
 // endpointsByName indexes the endpoints of a DNSEndpoint by DNS name.
 func endpointsByName(ep *externaldnsv1alpha1.DNSEndpoint) map[string]*externaldnsv1alpha1.Endpoint {
 	out := make(map[string]*externaldnsv1alpha1.Endpoint, len(ep.Spec.Endpoints))
@@ -59,7 +69,7 @@ func endpointsByName(ep *externaldnsv1alpha1.DNSEndpoint) map[string]*externaldn
 }
 
 func TestBuildDNSEndpointDefaults(t *testing.T) {
-	ep := BuildDNSEndpoint(newCR(), testMons)
+	ep := mustBuild(t, newCR(), testMons)
 
 	if ep.Name != "rook-ceph" || ep.Namespace != "rook-ceph" {
 		t.Errorf("got %s/%s, want rook-ceph/rook-ceph", ep.Namespace, ep.Name)
@@ -108,7 +118,7 @@ func TestBuildDNSEndpointDefaults(t *testing.T) {
 }
 
 func TestBuildDNSEndpointSRV(t *testing.T) {
-	ep := BuildDNSEndpoint(newCR(func(cr *cephmonsv1alpha1.CephMonDNSEndpoint) {
+	ep := mustBuild(t, newCR(func(cr *cephmonsv1alpha1.CephMonDNSEndpoint) {
 		cr.Spec.SRV.Enabled = true
 	}), testMons)
 
@@ -139,7 +149,7 @@ func TestBuildDNSEndpointSRV(t *testing.T) {
 }
 
 func TestBuildDNSEndpointAggregateDisabled(t *testing.T) {
-	ep := BuildDNSEndpoint(newCR(func(cr *cephmonsv1alpha1.CephMonDNSEndpoint) {
+	ep := mustBuild(t, newCR(func(cr *cephmonsv1alpha1.CephMonDNSEndpoint) {
 		cr.Spec.AllRecordName = ""
 	}), testMons)
 
@@ -149,7 +159,7 @@ func TestBuildDNSEndpointAggregateDisabled(t *testing.T) {
 }
 
 func TestBuildDNSEndpointIDTemplate(t *testing.T) {
-	ep := BuildDNSEndpoint(newCR(func(cr *cephmonsv1alpha1.CephMonDNSEndpoint) {
+	ep := mustBuild(t, newCR(func(cr *cephmonsv1alpha1.CephMonDNSEndpoint) {
 		cr.Spec.RecordTemplate = "ceph-mon-{id}"
 	}), testMons)
 
@@ -163,11 +173,11 @@ func TestBuildDNSEndpointIDTemplate(t *testing.T) {
 
 func TestBuildDNSEndpointDedupesAggregate(t *testing.T) {
 	mons := []MonEndpoint{
-		{ID: "a", NodeName: "n1", Address: "192.168.1.10", Port: 6789},
-		{ID: "b", NodeName: "n1", Address: "192.168.1.10", Port: 6789}, // same IP as a
-		{ID: "c", NodeName: "n2", Address: "192.168.1.11", Port: 6789},
+		{ID: "a", Address: "192.168.1.10", Port: 6789},
+		{ID: "b", Address: "192.168.1.10", Port: 6789}, // same IP as a
+		{ID: "c", Address: "192.168.1.11", Port: 6789},
 	}
-	ep := BuildDNSEndpoint(newCR(), mons)
+	ep := mustBuild(t, newCR(), mons)
 
 	all := endpointsByName(ep)["mon-all.ceph.example.com"]
 	if all == nil {
@@ -182,18 +192,50 @@ func TestBuildDNSEndpointDedupesAggregate(t *testing.T) {
 	}
 }
 
-func TestBuildDNSEndpointCustomTTLAndNamespace(t *testing.T) {
-	ep := BuildDNSEndpoint(newCR(func(cr *cephmonsv1alpha1.CephMonDNSEndpoint) {
+func TestBuildDNSEndpointCustomTTL(t *testing.T) {
+	ep := mustBuild(t, newCR(func(cr *cephmonsv1alpha1.CephMonDNSEndpoint) {
 		cr.Spec.TTL = 60
-		cr.Spec.TargetNamespace = "dns"
 	}), testMons)
 
-	if ep.Namespace != "dns" {
-		t.Errorf("namespace %q, want dns", ep.Namespace)
-	}
 	for _, e := range ep.Spec.Endpoints {
 		if e.RecordTTL != 60 {
 			t.Errorf("%s: TTL %d, want 60", e.DNSName, e.RecordTTL)
 		}
+	}
+}
+
+func TestBuildDNSEndpointIPv6(t *testing.T) {
+	mons := []MonEndpoint{
+		{ID: "a", Address: "192.168.1.10", Port: 6789},
+		{ID: "b", Address: "fd00::10", Port: 6789},
+	}
+	ep := mustBuild(t, newCR(), mons)
+
+	got := map[string]string{}
+	for _, e := range ep.Spec.Endpoints {
+		got[e.RecordType+" "+e.DNSName] = e.Targets[0]
+	}
+	want := map[string]string{
+		"A mon1.ceph.example.com":       "192.168.1.10",
+		"AAAA mon2.ceph.example.com":    "fd00::10",
+		"A mon-all.ceph.example.com":    "192.168.1.10",
+		"AAAA mon-all.ceph.example.com": "fd00::10",
+	}
+	if len(got) != len(want) {
+		t.Fatalf("got records %v, want %v", got, want)
+	}
+	for k, v := range want {
+		if got[k] != v {
+			t.Errorf("%s: got %q, want %q", k, got[k], v)
+		}
+	}
+}
+
+func TestBuildDNSEndpointNameConflict(t *testing.T) {
+	_, err := BuildDNSEndpoint(newCR(func(cr *cephmonsv1alpha1.CephMonDNSEndpoint) {
+		cr.Spec.AllRecordName = "mon1"
+	}), testMons)
+	if !errors.Is(err, ErrRecordNameConflict) {
+		t.Fatalf("got error %v, want ErrRecordNameConflict", err)
 	}
 }
