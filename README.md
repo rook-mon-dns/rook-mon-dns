@@ -6,8 +6,17 @@ ConfigMap and publishes the monitor **node IPs** as DNS records via
 objects. This makes the Ceph monitors reachable by name for clients outside
 the cluster (e.g. Proxmox, bare-metal hosts, VMs).
 
-> **Note:** This is an independent community project. It is not affiliated
-> with or endorsed by the Rook project, Ceph or the CNCF.
+> [!WARNING]
+> **Alpha – use at your own risk.** So far this operator has only been
+> tested with unit and envtest tests, not yet on a real cluster. The API (`v1alpha1`) may change without a
+> migration path. Test it in a non-critical environment first; no warranty
+> of any kind (see the license).
+>
+> **AI-assisted:** Large parts of the code, tests and documentation were
+> written with the help of AI coding assistants and reviewed by a human.
+>
+> This is an independent community project. It is not affiliated with or
+> endorsed by the Rook project, Ceph or the CNCF.
 
 ## How it works
 
