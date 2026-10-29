@@ -129,7 +129,7 @@ func (r *CephMonDNSEndpointReconciler) Reconcile(ctx context.Context, req ctrl.R
 	switch {
 	case errors.Is(err, ErrMappingEmpty):
 		return ctrl.Result{}, r.setNotReady(ctx, cr, ReasonMappingEmpty,
-			fmt.Sprintf("ConfigMap %s has no node mapping; publishing ClusterIPs is not supported (hostNetwork cluster required)", cmKey))
+			fmt.Sprintf("ConfigMap %s has no node mapping; mons must run with hostNetwork on fixed nodes", cmKey))
 	case errors.Is(err, ErrHostNetworkRequired):
 		return ctrl.Result{}, r.setNotReady(ctx, cr, ReasonHostNetworkRequired, err.Error())
 	case err != nil:

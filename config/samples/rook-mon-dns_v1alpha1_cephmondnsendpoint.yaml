@@ -13,8 +13,7 @@ spec:
 
   # Everything below is optional; the shown values are the defaults.
 
-  # Source ConfigMap (namespace defaults to the CR namespace and must not
-  # differ from it).
+  # Source ConfigMap, always read from the namespace of this resource.
   configMapRef:
     name: rook-ceph-mon-endpoints
 
@@ -22,7 +21,7 @@ spec:
   # Placeholders: {n} = sequence number (mons sorted by ID, can shift on failover), {id} = Rook mon ID.
   recordTemplate: "mon{n}"
 
-  # Aggregate A record containing all mon node IPs. Set to "" to disable.
+  # Aggregate record containing all mon node IPs. Set to "" to disable.
   allRecordName: "mon-all"
 
   ttl: 300

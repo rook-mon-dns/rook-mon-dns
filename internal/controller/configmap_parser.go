@@ -43,10 +43,10 @@ const (
 	DefaultMonPort = 6789
 )
 
-// ErrMappingEmpty is returned when the ConfigMap has no usable node mapping.
-// This is the case for Rook clusters without host networking; in that
-// situation the operator deliberately refuses to fall back to ClusterIPs.
-var ErrMappingEmpty = errors.New("configmap contains no node mapping (hostNetwork cluster required)")
+// ErrMappingEmpty is returned when the ConfigMap has no node mapping, e.g.
+// because the mons are not pinned to nodes. The operator deliberately never
+// falls back to the IPs in the data field.
+var ErrMappingEmpty = errors.New("configmap contains no node mapping")
 
 // ErrHostNetworkRequired is returned when the mon IPs in the data field differ
 // from the node addresses in the mapping, i.e. the mons run on the pod network
