@@ -5,7 +5,7 @@ description: |-
   ConfigMap) as DNS records via ExternalDNS DNSEndpoint objects.
 type: application
 version: 0.1.0
-appVersion: "0.1.0"
+appVersion: "v0.1.0"
 home: https://github.com/rook-mon-dns/rook-mon-dns
 sources:
   - https://github.com/rook-mon-dns/rook-mon-dns

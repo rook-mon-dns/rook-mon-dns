@@ -80,6 +80,11 @@ The operator needs no access to your DNS provider – ExternalDNS handles that.
 
 ## Installation
 
+There is no release yet. Until `v0.1.0`, images are published as
+`ghcr.io/rook-mon-dns/rook-mon-dns:main` (latest `main`) and
+`ghcr.io/rook-mon-dns/rook-mon-dns:sha-<commit>` (pin this one). You can also
+build your own image as shown below.
+
 ### Kustomize
 
 ```sh
@@ -93,16 +98,16 @@ make deploy IMG=<registry>/rook-mon-dns:<tag>
 kubectl apply -k config/samples/
 ```
 
-Or use the prebuilt installer from `dist/install.yaml`
-(`make build-installer IMG=...`).
+Or generate a single installer file with
+`make build-installer IMG=<registry>/rook-mon-dns:<tag>` and apply
+`dist/install.yaml`.
 
 ### Helm
 
 ```sh
-helm install publisher charts/rook-mon-dns \
+helm install rook-mon-dns charts/rook-mon-dns \
   --namespace rook-ceph \
-  --set image.repository=<registry>/rook-mon-dns \
-  --set image.tag=<tag>
+  --set image.tag=sha-<commit>      # or image.repository=<registry>/rook-mon-dns
 ```
 
 Interesting values (see `values.yaml`): `watchNamespaces` (one Role/RoleBinding
