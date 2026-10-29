@@ -37,8 +37,8 @@ const (
 	// port is relevant: the IPs are ClusterIPs and not usable externally.
 	ConfigMapDataKey = "data"
 
-	// DefaultMonPort is the default Ceph mon port (msgr2), used when the data
-	// field does not carry a parseable port for a mon.
+	// DefaultMonPort is the default Ceph mon port (msgr1/v1; msgr2 uses 3300),
+	// used when the data field does not carry a parseable port for a mon.
 	DefaultMonPort = 6789
 )
 
