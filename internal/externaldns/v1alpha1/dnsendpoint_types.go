@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // Well-known record types supported by external-dns.
@@ -112,5 +113,8 @@ type DNSEndpointList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&DNSEndpoint{}, &DNSEndpointList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &DNSEndpoint{}, &DNSEndpointList{})
+		return nil
+	})
 }

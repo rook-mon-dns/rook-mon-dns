@@ -10,7 +10,7 @@ rules:
   - apiGroups: [""]
     resources: ["configmaps"]
     verbs: ["get", "list", "watch"]
-  - apiGroups: [""]
+  - apiGroups: ["events.k8s.io"]
     resources: ["events"]
     verbs: ["create", "patch"]
   - apiGroups: ["rook-mon-dns.github.io"]

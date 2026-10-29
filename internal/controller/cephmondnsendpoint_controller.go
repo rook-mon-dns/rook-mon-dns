@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -28,7 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -66,7 +67,7 @@ const (
 type CephMonDNSEndpointReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+	Recorder events.EventRecorder
 
 	// AllowedZones restricts which spec.zone values are accepted.
 	// Empty means no restriction.
@@ -77,7 +78,7 @@ type CephMonDNSEndpointReconciler struct {
 // +kubebuilder:rbac:groups=rook-mon-dns.github.io,resources=cephmondnsendpoints/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=rook-mon-dns.github.io,resources=cephmondnsendpoints/finalizers,verbs=update
 // +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
-// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups=events.k8s.io,resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=externaldns.k8s.io,resources=dnsendpoints,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile publishes the Rook Ceph mon node endpoints of the referenced
@@ -162,7 +163,7 @@ func (r *CephMonDNSEndpointReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, err
 	}
 	if op != controllerutil.OperationResultNone {
-		r.Recorder.Eventf(cr, corev1.EventTypeNormal, ReasonSynced,
+		r.Recorder.Eventf(cr, nil, corev1.EventTypeNormal, ReasonSynced, "Reconcile",
 			"Published %d DNS records in zone %s", len(ep.Spec.Endpoints), cr.Spec.Zone)
 	}
 	return ctrl.Result{}, nil
@@ -209,7 +210,7 @@ func (r *CephMonDNSEndpointReconciler) setNotReady(ctx context.Context, cr *ceph
 	if err := r.Status().Update(ctx, cr); err != nil {
 		return fmt.Errorf("failed to update status: %w", err)
 	}
-	r.Recorder.Event(cr, corev1.EventTypeWarning, reason, message)
+	r.Recorder.Eventf(cr, nil, corev1.EventTypeWarning, reason, "Reconcile", "%s", message)
 	return nil
 }
 
@@ -218,12 +219,7 @@ func (r *CephMonDNSEndpointReconciler) zoneAllowed(zone string) bool {
 	if len(r.AllowedZones) == 0 {
 		return true
 	}
-	for _, allowed := range r.AllowedZones {
-		if zone == allowed {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(r.AllowedZones, zone)
 }
 
 // configMapName returns the name of the referenced ConfigMap.

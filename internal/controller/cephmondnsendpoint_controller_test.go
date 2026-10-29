@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -52,7 +52,7 @@ var _ = Describe("CephMonDNSEndpoint Controller", func() {
 		return &CephMonDNSEndpointReconciler{
 			Client:   k8sClient,
 			Scheme:   k8sClient.Scheme(),
-			Recorder: record.NewFakeRecorder(32),
+			Recorder: events.NewFakeRecorder(32),
 		}
 	}
 
