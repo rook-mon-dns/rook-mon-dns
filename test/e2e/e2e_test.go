@@ -30,7 +30,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"cephmons.github.io/rook-mon-dns/test/utils"
+	"github.com/rook-mon-dns/rook-mon-dns/test/utils"
 )
 
 // namespace where the project is deployed in

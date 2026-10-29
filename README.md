@@ -6,6 +6,9 @@ ConfigMap and publishes the monitor **node IPs** as DNS records via
 objects. This makes the Ceph monitors reachable by name for clients outside
 the cluster (e.g. Proxmox, bare-metal hosts, VMs).
 
+> **Note:** This is an independent community project. It is not affiliated
+> with or endorsed by the Rook project, Ceph or the CNCF.
+
 ## How it works
 
 Rook stores the mon endpoints in the `rook-ceph-mon-endpoints` ConfigMap. The
@@ -70,7 +73,7 @@ per namespace), `allowedZones`, `networkPolicy.*`, `metrics.enabled`.
 ## Configuration
 
 ```yaml
-apiVersion: cephmons.github.io/v1alpha1
+apiVersion: rook-mon-dns.github.io/v1alpha1
 kind: CephMonDNSEndpoint
 metadata:
   name: rook-ceph

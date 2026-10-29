@@ -1,4 +1,4 @@
-module cephmons.github.io/rook-mon-dns
+module github.com/rook-mon-dns/rook-mon-dns
 
 go 1.26.0
 

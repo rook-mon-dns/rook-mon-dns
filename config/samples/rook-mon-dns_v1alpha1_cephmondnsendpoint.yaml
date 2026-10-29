@@ -1,4 +1,4 @@
-apiVersion: cephmons.github.io/v1alpha1
+apiVersion: rook-mon-dns.github.io/v1alpha1
 kind: CephMonDNSEndpoint
 metadata:
   labels:

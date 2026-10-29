@@ -24,13 +24,13 @@ rules:
     resources: ["events"]
     verbs: ["create", "patch"]
   # The operator's own CRs
-  - apiGroups: ["cephmons.github.io"]
+  - apiGroups: ["rook-mon-dns.github.io"]
     resources: ["cephmondnsendpoints"]
     verbs: ["get", "list", "watch"]
-  - apiGroups: ["cephmons.github.io"]
+  - apiGroups: ["rook-mon-dns.github.io"]
     resources: ["cephmondnsendpoints/finalizers"]
     verbs: ["update"]
-  - apiGroups: ["cephmons.github.io"]
+  - apiGroups: ["rook-mon-dns.github.io"]
     resources: ["cephmondnsendpoints/status"]
     verbs: ["get", "patch", "update"]
   # DNSEndpoint objects published for ExternalDNS

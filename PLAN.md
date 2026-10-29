@@ -10,7 +10,7 @@ ExternalDNS.
 
 **Complete (as of 2026-08-13).** All implementation steps done and verified:
 
-- [x] Bootstrap (kubebuilder init/create api, group `cephmons.github.io/v1alpha1`)
+- [x] Bootstrap (kubebuilder init/create api, group `rook-mon-dns.github.io/v1alpha1`)
 - [x] CRD types per §5 (CEL validation, defaults, print columns)
 - [x] DNSEndpoint types in `internal/externaldns/v1alpha1` (mirrored from the
       official external-dns CRD; needs `+kubebuilder:object:generate=true` at
@@ -67,7 +67,7 @@ Go/kubebuilder installation needed.
 | DNS scheme | Stable names `mon1`…`monN` (sorted by mon ID) + aggregate record `mon-all`; names built from zone + template |
 | TTL | Default 300s, configurable in the CR |
 | SRV records | Yes, optional via spec flag (`_ceph-mon._tcp.<zone>`, port 6789) |
-| API group | Neutral public group: `cephmons.github.io/v1alpha1` (placeholder – adjust to your own GitHub org/domain) |
+| API group | `rook-mon-dns.github.io/v1alpha1` (GitHub Pages domain of the `rook-mon-dns` org – neutral, owned, no own domain needed) |
 | Deployment | Kustomize (Kubebuilder standard) + Helm chart |
 | CI/CD | No setup, local builds only (`make`, `docker-build`) |
 
@@ -159,7 +159,7 @@ v1alpha1 API is small and stable.
 ## 5. CRD design
 
 ```yaml
-apiVersion: cephmons.github.io/v1alpha1
+apiVersion: rook-mon-dns.github.io/v1alpha1
 kind: CephMonDNSEndpoint               # scope: Namespaced
 metadata:
   name: rook-ceph
@@ -275,7 +275,7 @@ in `ceph.conf`.
 ## 8. Implementation steps
 
 1. **Bootstrap:** `git init`; `kubebuilder init --domain github.io --repo <module>`;
-   `kubebuilder create api --group cephmons --version v1alpha1 --kind CephMonDNSEndpoint --resource --controller`
+   `kubebuilder create api --group rook-mon-dns --version v1alpha1 --kind CephMonDNSEndpoint --resource --controller`
 2. **CRD types** as per section 5 (`+kubebuilder` validations, defaults), `make manifests generate`.
 3. **DNSEndpoint types** under `internal/externaldns/v1alpha1` + register with the scheme.
 4. **Parser** (`configmap_parser.go`) + unit tests (including your real CM example as a fixture; edge cases: empty mapping, missing keys, broken JSON).
@@ -365,10 +365,10 @@ rules:
   - apiGroups: ["externaldns.k8s.io"]
     resources: ["dnsendpoints"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-  - apiGroups: ["cephmons.github.io"]
+  - apiGroups: ["rook-mon-dns.github.io"]
     resources: ["cephmondnsendpoints"]
     verbs: ["get", "list", "watch", "update", "patch"]   # + create/delete if users delegate CR mgmt
-  - apiGroups: ["cephmons.github.io"]
+  - apiGroups: ["rook-mon-dns.github.io"]
     resources: ["cephmondnsendpoints/status"]
     verbs: ["get", "update", "patch"]
   - apiGroups: [""]
@@ -415,7 +415,7 @@ spec:
   failurePolicy: Fail
   matchConstraints:
     resourceRules:
-      - apiGroups: ["cephmons.github.io"]
+      - apiGroups: ["rook-mon-dns.github.io"]
         apiVersions: ["v1alpha1"]
         resources: ["cephmondnsendpoints"]
         operations: ["CREATE", "UPDATE"]
@@ -478,7 +478,7 @@ kubectl label ns cephmons-system pod-security.kubernetes.io/enforce=restricted \
 
 ## 11. Assumptions & open points
 
-- **API group** `cephmons.github.io` is a placeholder – adjust it to your GitHub org/domain during bootstrap.
+- **API group** `rook-mon-dns.github.io` is tied to the GitHub org `rook-mon-dns`; changing it later means a new CRD for every user.
 - No fallback to ClusterIPs when `mapping` is empty (deliberate decision, see §2).
 - The operator manages exactly **one** ConfigMap format (current Rook versions). Older Rook versions without the `mapping` field are not supported.
 - **v1 is single-namespace per watched namespace** (same-namespace constraint, §10). Multi-namespace support = one Role/RoleBinding per additional watched namespace (`--watch-namespaces`). Cross-namespace references are deliberately rejected.
