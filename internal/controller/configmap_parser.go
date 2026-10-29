@@ -33,8 +33,9 @@ const (
 	ConfigMapMappingKey = "mapping"
 
 	// ConfigMapDataKey is the ConfigMap key holding the mon endpoints as
-	// "id=ip:port" pairs, e.g. "a=10.0.0.1:6789,b=10.0.0.2:6789". Only the
-	// port is relevant: the IPs are ClusterIPs and not usable externally.
+	// "id=ip:port" pairs, e.g. "a=10.0.0.1:6789,b=10.0.0.2:6789". With
+	// hostNetwork the IPs equal the node addresses from the mapping; otherwise
+	// they are ClusterIPs that are not reachable from outside the cluster.
 	ConfigMapDataKey = "data"
 
 	// DefaultMonPort is the default Ceph mon port (msgr1/v1; msgr2 uses 3300),
@@ -47,13 +48,18 @@ const (
 // situation the operator deliberately refuses to fall back to ClusterIPs.
 var ErrMappingEmpty = errors.New("configmap contains no node mapping (hostNetwork cluster required)")
 
+// ErrHostNetworkRequired is returned when the mon IPs in the data field differ
+// from the node addresses in the mapping, i.e. the mons run on the pod network
+// and are not reachable on the node IPs.
+// Limitation: also triggers for hostNetwork mons bound to a non-default node IP
+// (multi-NIC, network.addressRanges); publish the data IPs if that is needed.
+var ErrHostNetworkRequired = errors.New("mons are not on the host network (hostNetwork cluster required)")
+
 // MonEndpoint is a single Ceph monitor as parsed from the Rook
 // rook-ceph-mon-endpoints ConfigMap.
 type MonEndpoint struct {
 	// ID is the Rook mon ID (e.g. "a", "g"). Not stable across failovers.
 	ID string
-	// NodeName is the name of the node the mon runs on.
-	NodeName string
 	// Address is the node IP the mon is reachable on.
 	Address string
 	// Port is the mon port (from the data field, default 6789).
@@ -66,9 +72,7 @@ type monMappingJSON struct {
 }
 
 type monMappingNode struct {
-	Name     string `json:"Name"`
-	Hostname string `json:"Hostname"`
-	Address  string `json:"Address"`
+	Address string `json:"Address"`
 }
 
 // ParseMonEndpoints extracts the mon node endpoints from the Rook
@@ -90,7 +94,7 @@ func ParseMonEndpoints(cm *corev1.ConfigMap) ([]MonEndpoint, error) {
 		return nil, ErrMappingEmpty
 	}
 
-	ports := parseMonPorts(cm.Data[ConfigMapDataKey])
+	monData := parseMonData(cm.Data[ConfigMapDataKey])
 
 	endpoints := make([]MonEndpoint, 0, len(mapping.Node))
 	for id, node := range mapping.Node {
@@ -98,33 +102,28 @@ func ParseMonEndpoints(cm *corev1.ConfigMap) ([]MonEndpoint, error) {
 		if err != nil {
 			return nil, fmt.Errorf("mon %q has invalid address %q: %w", id, node.Address, err)
 		}
+		addr = addr.Unmap()
 
-		name := node.Name
-		if name == "" {
-			name = node.Hostname
+		port := DefaultMonPort
+		if data, ok := monData[id]; ok {
+			if data.Addr().Unmap() != addr {
+				return nil, fmt.Errorf("%w: mon %q listens on %s, but its node address is %s",
+					ErrHostNetworkRequired, id, data.Addr(), addr)
+			}
+			port = int(data.Port())
 		}
 
-		port := ports[id]
-		if port == 0 {
-			port = DefaultMonPort
-		}
-
-		endpoints = append(endpoints, MonEndpoint{
-			ID:       id,
-			NodeName: name,
-			Address:  addr.String(),
-			Port:     port,
-		})
+		endpoints = append(endpoints, MonEndpoint{ID: id, Address: addr.String(), Port: port})
 	}
 
 	slices.SortFunc(endpoints, func(a, b MonEndpoint) int { return strings.Compare(a.ID, b.ID) })
 	return endpoints, nil
 }
 
-// parseMonPorts parses the data field ("a=10.0.0.1:6789,b=10.0.0.2:3300") into
-// a mon-ID-to-port map. Entries that cannot be parsed are skipped.
-func parseMonPorts(data string) map[string]int {
-	ports := make(map[string]int)
+// parseMonData parses the data field ("a=10.0.0.1:6789,b=10.0.0.2:3300") into
+// a mon-ID-to-address map. Entries that cannot be parsed are skipped.
+func parseMonData(data string) map[string]netip.AddrPort {
+	endpoints := make(map[string]netip.AddrPort)
 	for entry := range strings.SplitSeq(data, ",") {
 		entry = strings.TrimSpace(entry)
 		if entry == "" {
@@ -138,7 +137,7 @@ func parseMonPorts(data string) map[string]int {
 		if err != nil {
 			continue
 		}
-		ports[strings.TrimSpace(id)] = int(addrPort.Port())
+		endpoints[strings.TrimSpace(id)] = addrPort
 	}
-	return ports
+	return endpoints
 }

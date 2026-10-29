@@ -21,21 +21,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// DNS1123SubdomainPattern matches RFC 1123 subdomains (e.g. "ceph.example.com").
-const DNS1123SubdomainPattern = `^([a-z0-9]([-a-z0-9]*[a-z0-9])?\.)*[a-z0-9]([-a-z0-9]*[a-z0-9])?$`
-
-// ConfigMapReference points to the Rook Ceph mon endpoints ConfigMap.
+// ConfigMapReference points to the Rook Ceph mon endpoints ConfigMap in the
+// namespace of the CephMonDNSEndpoint.
 type ConfigMapReference struct {
 	// name of the ConfigMap that contains the Rook Ceph mon endpoints.
 	// +kubebuilder:default="rook-ceph-mon-endpoints"
 	// +kubebuilder:validation:MinLength=1
 	// +optional
 	Name string `json:"name,omitempty"`
-
-	// namespace of the ConfigMap. Must be empty or equal to the namespace of
-	// this CephMonDNSEndpoint (enforced by the operator).
-	// +optional
-	Namespace string `json:"namespace,omitempty"`
 }
 
 // SRVSpec configures the optional SRV record for Ceph mon discovery
@@ -51,6 +44,8 @@ type SRVSpec struct {
 	// results in "_ceph-mon._tcp.<zone>").
 	// +kubebuilder:default="_ceph-mon._tcp"
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^(_?[a-z0-9]([-a-z0-9]*[a-z0-9])?[.])*_?[a-z0-9]([-a-z0-9]*[a-z0-9])?$`
 	// +optional
 	Name string `json:"name,omitempty"`
 }
@@ -79,14 +74,16 @@ type CephMonDNSEndpointSpec struct {
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
 	// +kubebuilder:validation:XValidation:rule="self.contains('{n}') || self.contains('{id}')",message="recordTemplate must contain at least one of the placeholders {n} or {id}"
+	// +kubebuilder:validation:XValidation:rule="self.replace('{n}', '1').replace('{id}', 'a').matches('^([a-z0-9]([-a-z0-9]*[a-z0-9])?[.])*[a-z0-9]([-a-z0-9]*[a-z0-9])?$')",message="recordTemplate must render to a lowercase DNS name"
 	// +optional
 	RecordTemplate string `json:"recordTemplate,omitempty"`
 
 	// allRecordName is an additional A record (relative to the zone) that
 	// contains all monitor node IPs at once. Set to an empty string to
-	// disable the aggregate record.
+	// disable the aggregate record. Must not collide with a per-monitor name.
 	// +kubebuilder:default="mon-all"
 	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^$|^([a-z0-9]([-a-z0-9]*[a-z0-9])?[.])*[a-z0-9]([-a-z0-9]*[a-z0-9])?$`
 	// +optional
 	AllRecordName string `json:"allRecordName,omitempty"`
 
@@ -101,28 +98,22 @@ type CephMonDNSEndpointSpec struct {
 	// +kubebuilder:default={}
 	// +optional
 	SRV SRVSpec `json:"srv,omitzero"`
-
-	// targetNamespace is the namespace the DNSEndpoint object is created in.
-	// Must be empty or equal to the namespace of this CephMonDNSEndpoint
-	// (enforced by the operator).
-	// +optional
-	TargetNamespace string `json:"targetNamespace,omitempty"`
 }
 
-// PublishedEndpoint describes a single published DNS record target.
+// PublishedEndpoint describes a single published DNS record.
 type PublishedEndpoint struct {
 	// dnsName is the fully qualified DNS name of the record.
 	// +required
 	DNSName string `json:"dnsName"`
 
-	// monId is the Rook mon ID this record belongs to (empty for the
-	// aggregate record).
-	// +optional
-	MonID string `json:"monId,omitempty"`
-
-	// target is the published node IP.
+	// recordType is the DNS record type (A, AAAA or SRV).
 	// +required
-	Target string `json:"target"`
+	RecordType string `json:"recordType"`
+
+	// targets are the record values (node IPs, or SRV targets).
+	// +listType=atomic
+	// +required
+	Targets []string `json:"targets"`
 }
 
 // CephMonDNSEndpointStatus defines the observed state of CephMonDNSEndpoint.

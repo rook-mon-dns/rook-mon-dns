@@ -35,7 +35,7 @@ spec:
             - --metrics-bind-address=:8080
             - --metrics-secure=false
             {{- end }}
-            - --watch-namespaces={{ .Values.watchNamespaces | join "," }}
+            - --watch-namespaces={{ required "watchNamespaces must list at least one namespace (the chart only creates namespaced Roles)" (.Values.watchNamespaces | join "," | default nil) }}
             {{- if .Values.allowedZones }}
             - --allowed-zones={{ .Values.allowedZones | join "," }}
             {{- end }}

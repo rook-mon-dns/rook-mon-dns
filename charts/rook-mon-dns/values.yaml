@@ -27,9 +27,9 @@ metrics:
 
 networkPolicy:
   enabled: true
-  # CIDR of the Kubernetes API server (usually the service CIDR).
-  # 10.96.0.0/12 is the Kubernetes/Talos default – adjust if different.
-  apiServerCIDR: 10.96.0.0/12
+  # Egress ports to the Kubernetes API server: the service port and the
+  # port of the API server endpoint itself (6443 on most distributions).
+  apiServerPorts: [443, 6443]
   # Only namespaces carrying these labels may scrape the metrics endpoint.
   metricsNamespaceLabels:
     metrics: enabled

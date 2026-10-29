@@ -23,8 +23,9 @@ import (
 
 // Well-known record types supported by external-dns.
 const (
-	RecordTypeA   = "A"
-	RecordTypeSRV = "SRV"
+	RecordTypeA    = "A"
+	RecordTypeAAAA = "AAAA"
+	RecordTypeSRV  = "SRV"
 )
 
 // TTL is the TTL for a DNS record in seconds.

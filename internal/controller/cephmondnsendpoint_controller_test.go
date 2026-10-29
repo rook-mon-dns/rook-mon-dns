@@ -22,7 +22,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -138,6 +137,21 @@ var _ = Describe("CephMonDNSEndpoint Controller", func() {
 			Expect(k8sClient.Create(ctx, cr)).NotTo(Succeed())
 		})
 
+		It("rejects record names that are not valid DNS names", func() {
+			for _, mutate := range []func(*cephmonsv1alpha1.CephMonDNSEndpointSpec){
+				func(s *cephmonsv1alpha1.CephMonDNSEndpointSpec) { s.RecordTemplate = "Mon_{n}" },
+				func(s *cephmonsv1alpha1.CephMonDNSEndpointSpec) { s.AllRecordName = "all mons" },
+				func(s *cephmonsv1alpha1.CephMonDNSEndpointSpec) { s.SRV.Name = "_ceph mon" },
+			} {
+				cr := &cephmonsv1alpha1.CephMonDNSEndpoint{
+					ObjectMeta: metav1.ObjectMeta{Name: namespacedName.Name, Namespace: namespacedName.Namespace},
+					Spec:       cephmonsv1alpha1.CephMonDNSEndpointSpec{Zone: zone},
+				}
+				mutate(&cr.Spec)
+				Expect(k8sClient.Create(ctx, cr)).NotTo(Succeed())
+			}
+		})
+
 		It("rejects a recordTemplate without placeholders", func() {
 			cr := &cephmonsv1alpha1.CephMonDNSEndpoint{
 				ObjectMeta: metav1.ObjectMeta{Name: namespacedName.Name, Namespace: namespacedName.Namespace},
@@ -193,6 +207,7 @@ var _ = Describe("CephMonDNSEndpoint Controller", func() {
 				`"g":{"Name":"talos-node-04","Hostname":"talos-node-04","Address":"192.168.1.110"},` +
 				`"j":{"Name":"talos-node-03","Hostname":"talos-node-03","Address":"192.168.1.107"},` +
 				`"l":{"Name":"talos-node-02","Hostname":"talos-node-02","Address":"192.168.1.105"}}}`
+			cm.Data[ConfigMapDataKey] = "g=192.168.1.110:6789,l=192.168.1.105:6789,j=192.168.1.107:6789"
 			Expect(k8sClient.Update(ctx, cm)).To(Succeed())
 
 			reconcileResource()
@@ -206,7 +221,7 @@ var _ = Describe("CephMonDNSEndpoint Controller", func() {
 			Fail("mon1.ceph.example.com not found")
 		})
 
-		It("removes the DNSEndpoint and sets MappingEmpty when the mapping is emptied", func() {
+		It("keeps the DNSEndpoint and sets MappingEmpty when the mapping is emptied", func() {
 			createConfigMap(realMapping)
 			createResource()
 			reconcileResource()
@@ -219,9 +234,7 @@ var _ = Describe("CephMonDNSEndpoint Controller", func() {
 
 			reconcileResource()
 
-			ep := &externaldnsv1alpha1.DNSEndpoint{}
-			err := k8sClient.Get(ctx, namespacedName, ep)
-			Expect(errors.IsNotFound(err)).To(BeTrue())
+			Expect(getDNSEndpoint().Spec.Endpoints).To(HaveLen(4))
 
 			cond := meta.FindStatusCondition(getResource().Status.Conditions, ConditionTypeReady)
 			Expect(cond).NotTo(BeNil())
@@ -231,21 +244,25 @@ var _ = Describe("CephMonDNSEndpoint Controller", func() {
 	})
 
 	Context("Guardrails", func() {
-		It("rejects cross-namespace ConfigMap references", func() {
+		It("does not take over a DNSEndpoint it does not own", func() {
 			createConfigMap(realMapping)
-			createResource(func(cr *cephmonsv1alpha1.CephMonDNSEndpoint) {
-				cr.Spec.ConfigMapRef.Namespace = "other-namespace"
-			})
+			foreign := &externaldnsv1alpha1.DNSEndpoint{
+				ObjectMeta: metav1.ObjectMeta{Name: namespacedName.Name, Namespace: namespacedName.Namespace},
+				Spec: externaldnsv1alpha1.DNSEndpointSpec{Endpoints: []*externaldnsv1alpha1.Endpoint{
+					{DNSName: "other.example.com", RecordType: "A", Targets: externaldnsv1alpha1.Targets{"192.0.2.1"}},
+				}},
+			}
+			Expect(k8sClient.Create(ctx, foreign)).To(Succeed())
+			createResource()
 
 			reconcileResource()
 
 			cond := meta.FindStatusCondition(getResource().Status.Conditions, ConditionTypeReady)
 			Expect(cond).NotTo(BeNil())
-			Expect(cond.Reason).To(Equal(ReasonCrossNamespaceRefDenied))
-
-			ep := &externaldnsv1alpha1.DNSEndpoint{}
-			err := k8sClient.Get(ctx, namespacedName, ep)
-			Expect(errors.IsNotFound(err)).To(BeTrue())
+			Expect(cond.Reason).To(Equal(ReasonDNSEndpointConflict))
+			ep := getDNSEndpoint()
+			Expect(ep.OwnerReferences).To(BeEmpty())
+			Expect(ep.Spec.Endpoints).To(HaveLen(1))
 		})
 
 		It("sets ConfigMapNotFound when the source ConfigMap is missing", func() {
@@ -253,7 +270,7 @@ var _ = Describe("CephMonDNSEndpoint Controller", func() {
 
 			result, err := reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result.RequeueAfter).To(Equal(configMapNotFoundRequeue))
+			Expect(result.RequeueAfter).To(Equal(retryInterval))
 
 			cond := meta.FindStatusCondition(getResource().Status.Conditions, ConditionTypeReady)
 			Expect(cond).NotTo(BeNil())

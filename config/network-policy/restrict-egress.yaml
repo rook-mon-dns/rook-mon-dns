@@ -1,9 +1,9 @@
 # This NetworkPolicy restricts the operator's egress traffic to the
 # Kubernetes API server and DNS. The operator talks to nothing else.
 #
-# NOTE: 10.96.0.0/12 is the default Kubernetes service CIDR (also the Talos
-# default). Adjust the ipBlock if your cluster uses a different service CIDR,
-# otherwise the operator cannot reach the API server.
+# The API server rule is port-based on purpose: most CNIs (Calico, Cilium)
+# evaluate egress after the service IP was translated to the real API server
+# endpoint (node IP, usually port 6443), so a service-CIDR ipBlock would block it.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -20,12 +20,11 @@ spec:
   policyTypes:
     - Egress
   egress:
-    # Kubernetes API server (service CIDR)
-    - to:
-        - ipBlock:
-            cidr: 10.96.0.0/12
-      ports:
+    # Kubernetes API server (service port 443, endpoint port 6443)
+    - ports:
         - port: 443
+          protocol: TCP
+        - port: 6443
           protocol: TCP
     # DNS resolution (CoreDNS/kube-dns), as a safety net
     - to:

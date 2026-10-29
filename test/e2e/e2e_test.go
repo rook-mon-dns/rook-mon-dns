@@ -35,17 +35,20 @@ import (
 // by config/default.
 const namespace = "rook-ceph"
 
-// monEndpointsConfigMap mimics the ConfigMap Rook writes (hostNetwork mons).
+// monEndpointsConfigMap mimics the ConfigMap Rook writes (hostNetwork mons:
+// the IPs in data equal the node addresses in mapping).
 const monEndpointsConfigMap = `apiVersion: v1
 kind: ConfigMap
 metadata:
   name: rook-ceph-mon-endpoints
   namespace: rook-ceph
 data:
-  data: g=10.109.56.143:6789,j=10.97.18.232:6789,l=10.97.138.166:6789
+  data: '%s'
   mapping: '%s'
-  maxMonId: "11"
+  maxMonId: "12"
 `
+
+const dataThreeMons = "g=192.168.1.103:6789,j=192.168.1.107:6789,l=192.168.1.105:6789"
 
 const mappingThreeMons = `{"node":{` +
 	`"g":{"Name":"node-01","Hostname":"node-01","Address":"192.168.1.103"},` +
@@ -53,6 +56,8 @@ const mappingThreeMons = `{"node":{` +
 	`"l":{"Name":"node-02","Hostname":"node-02","Address":"192.168.1.105"}}}`
 
 // mappingFailover replaces mon g by mon m on another node.
+const dataFailover = "j=192.168.1.107:6789,l=192.168.1.105:6789,m=192.168.1.109:3300"
+
 const mappingFailover = `{"node":{` +
 	`"j":{"Name":"node-03","Hostname":"node-03","Address":"192.168.1.107"},` +
 	`"l":{"Name":"node-02","Hostname":"node-02","Address":"192.168.1.105"},` +
@@ -131,7 +136,7 @@ var _ = Describe("rook-mon-dns", Ordered, func() {
 	})
 
 	It("publishes the mons as DNS records", func() {
-		_, err := kubectl(fmt.Sprintf(monEndpointsConfigMap, mappingThreeMons), "apply", "-f", "-")
+		_, err := kubectl(fmt.Sprintf(monEndpointsConfigMap, dataThreeMons, mappingThreeMons), "apply", "-f", "-")
 		Expect(err).NotTo(HaveOccurred())
 		_, err = kubectl(cephMonDNSEndpoint, "apply", "-f", "-")
 		Expect(err).NotTo(HaveOccurred())
@@ -164,14 +169,31 @@ var _ = Describe("rook-mon-dns", Ordered, func() {
 		}).Should(Succeed())
 	})
 
+	It("keeps the records while the ConfigMap is briefly broken", func() {
+		_, err := kubectl(fmt.Sprintf(monEndpointsConfigMap, "", "{}"), "apply", "-f", "-")
+		Expect(err).NotTo(HaveOccurred())
+
+		Eventually(func(g Gomega) {
+			out, err := kubectl("", "get", "cephmondnsendpoint", "rook-ceph", "-n", namespace,
+				"-o", `jsonpath={.status.conditions[?(@.type=="Ready")].reason}`)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(out).To(Equal("MappingEmpty"))
+		}).Should(Succeed())
+
+		out, err := dnsRecords()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(out).To(ContainSubstring(`mon1.ceph.example.com A ["192.168.1.103"]`))
+	})
+
 	It("follows a mon failover", func() {
-		_, err := kubectl(fmt.Sprintf(monEndpointsConfigMap, mappingFailover), "apply", "-f", "-")
+		_, err := kubectl(fmt.Sprintf(monEndpointsConfigMap, dataFailover, mappingFailover), "apply", "-f", "-")
 		Expect(err).NotTo(HaveOccurred())
 
 		Eventually(func(g Gomega) {
 			out, err := dnsRecords()
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(out).To(ContainSubstring(`mon3.ceph.example.com A ["192.168.1.109"]`))
+			g.Expect(out).To(ContainSubstring(`"0 10 3300 mon3.ceph.example.com"`))
 			g.Expect(out).NotTo(ContainSubstring("192.168.1.103"))
 		}).Should(Succeed())
 	})
