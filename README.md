@@ -155,3 +155,10 @@ After a reboot (Go caches live in `/tmp`): just `nix-shell --run 'go mod downloa
 | `MappingInvalid` | mapping field could not be parsed |
 | `CrossNamespaceRefDenied` | references must stay in the CR namespace |
 | `ZoneNotAllowed` | zone not in `--allowed-zones` |
+
+## License
+
+Copyright 2026 The rook-mon-dns Authors.
+
+Licensed under the [Apache License, Version 2.0](LICENSE). Distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND.
