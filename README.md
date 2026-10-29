@@ -83,7 +83,8 @@ The operator needs no access to your DNS provider – ExternalDNS handles that.
 
 There is no release yet. Until `v0.1.0`, images are published as
 `ghcr.io/rook-mon-dns/rook-mon-dns:main` (latest `main`) and
-`ghcr.io/rook-mon-dns/rook-mon-dns:sha-<commit>` (pin this one). You can also
+`ghcr.io/rook-mon-dns/rook-mon-dns:sha-<commit>` (pin this one), for amd64 and
+arm64, built by CI from every commit on `main`. You can also
 build your own image as shown below.
 
 ### Kustomize
