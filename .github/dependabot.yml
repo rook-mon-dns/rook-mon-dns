@@ -4,6 +4,10 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # Also update indirect modules: vulnerable transitive dependencies
+    # (x/net, grpc, otel via the Kubernetes libraries) are otherwise ignored.
+    allow:
+      - dependency-type: all
     groups:
       # One PR for all Go module updates instead of one per module.
       go-modules:
