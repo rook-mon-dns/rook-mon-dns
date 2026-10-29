@@ -11,6 +11,33 @@ the cluster (e.g. Proxmox, bare-metal hosts, VMs).
 
 ## How it works
 
+```mermaid
+flowchart LR
+    subgraph k8s["Kubernetes cluster"]
+        rook["Rook operator"]
+        cm[("ConfigMap<br/>rook-ceph-mon-endpoints")]
+        cr[("CephMonDNSEndpoint<br/>(this CRD)")]
+        op["rook-mon-dns<br/>operator"]
+        dnsep[("DNSEndpoint<br/>externaldns.k8s.io")]
+        edns["ExternalDNS"]
+        mons["Ceph mons<br/>(host network on nodes)"]
+    end
+    dns[("DNS provider<br/>e.g. PowerDNS, RFC2136, Route53")]
+    client["External Ceph clients<br/>Proxmox, bare metal, VMs"]
+
+    rook -- "writes mon → node mapping" --> cm
+    op -- "watches" --> cm
+    op -- "watches, updates status" --> cr
+    op -- "creates/updates (owner ref)" --> dnsep
+    edns -- "watches" --> dnsep
+    edns -- "writes A/SRV records" --> dns
+    client -- "resolves mon1…monN, mon-all" --> dns
+    client -- "connects 3300/6789 to node IPs" --> mons
+```
+
+The operator only talks to the Kubernetes API server: it never contacts DNS
+or Ceph directly. ExternalDNS does the actual DNS update.
+
 Rook stores the mon endpoints in the `rook-ceph-mon-endpoints` ConfigMap. The
 `data` field contains ClusterIPs (only usable inside the cluster), while the
 `mapping` field contains the mon-to-node assignment with real node IPs. The
