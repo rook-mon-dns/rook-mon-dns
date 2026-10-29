@@ -73,7 +73,8 @@ type monMappingNode struct {
 
 // ParseMonEndpoints extracts the mon node endpoints from the Rook
 // rook-ceph-mon-endpoints ConfigMap. The returned list is sorted by mon ID so
-// that record names derived from the position in the list stay stable.
+// that record names derived from the position in the list do not change as
+// long as the set of mons stays the same.
 func ParseMonEndpoints(cm *corev1.ConfigMap) ([]MonEndpoint, error) {
 	raw, ok := cm.Data[ConfigMapMappingKey]
 	if !ok || strings.TrimSpace(raw) == "" {

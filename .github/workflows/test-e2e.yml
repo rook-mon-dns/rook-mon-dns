@@ -1,10 +1,14 @@
 name: E2E Tests
 
-# Manual only: test/e2e is still the kubebuilder scaffold (expects namespace
-# rook-mon-dns-system, the operator deploys to rook-ceph). Re-enable push/PR
-# triggers once real e2e tests exist (see PLAN.md §0).
 on:
+  push:
+    branches: [main]
+  pull_request:
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions: {}
 

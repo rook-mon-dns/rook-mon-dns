@@ -29,8 +29,7 @@ import (
 
 // BuildDNSEndpoint computes the desired DNSEndpoint object for the given
 // CephMonDNSEndpoint and the parsed mon endpoints. mons must be sorted by mon
-// ID (ParseMonEndpoints already guarantees this) so that the generated record
-// names stay stable. The result is deterministic.
+// ID (ParseMonEndpoints already guarantees this). The result is deterministic.
 func BuildDNSEndpoint(cr *cephmonsv1alpha1.CephMonDNSEndpoint, mons []MonEndpoint) *externaldnsv1alpha1.DNSEndpoint {
 	spec := cr.Spec
 	ttl := externaldnsv1alpha1.TTL(spec.TTL)
