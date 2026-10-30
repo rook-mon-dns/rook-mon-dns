@@ -111,36 +111,32 @@ The operator needs no access to your DNS provider – ExternalDNS handles that.
 
 ## Installation
 
-There is no release yet. Until `v0.1.0`, images are published as
-`ghcr.io/rook-mon-dns/rook-mon-dns:main` (latest `main`) and
-`ghcr.io/rook-mon-dns/rook-mon-dns:sha-<commit>` (pin this one), for amd64 and
-arm64, built by CI from every commit on `main`. You can also
-build your own image as shown below.
+Images: `ghcr.io/rook-mon-dns/rook-mon-dns:<version>` (amd64 and arm64), see
+[Releases](https://github.com/rook-mon-dns/rook-mon-dns/releases). CI also
+publishes `:main` and `:sha-<commit>` for every commit on `main`.
 
 ### Kustomize
 
 ```sh
-# build & push the image
-make docker-build docker-push IMG=<registry>/rook-mon-dns:<tag>
-
 # deploys into the rook-ceph namespace, watching only that namespace
-make deploy IMG=<registry>/rook-mon-dns:<tag>
-
-# create the resource
-kubectl apply -k config/samples/
+kubectl apply -k "github.com/rook-mon-dns/rook-mon-dns/config/default?ref=v0.1.0"
 ```
 
-Or generate a single installer file with
-`make build-installer IMG=<registry>/rook-mon-dns:<tag>` and apply
-`dist/install.yaml`.
+Or apply the `install.yaml` attached to the release. To build your own image:
+`make docker-build docker-push deploy IMG=<registry>/rook-mon-dns:<tag>`.
+
+Then create a `CephMonDNSEndpoint` as shown under [Configuration](#configuration).
 
 ### Helm
 
 ```sh
-helm install rook-mon-dns charts/rook-mon-dns \
+helm install rook-mon-dns oci://ghcr.io/rook-mon-dns/charts/rook-mon-dns \
+  --version 0.1.0 \
   --namespace rook-ceph \
-  --set image.tag=sha-<commit>      # or image.repository=<registry>/rook-mon-dns
+  --set "allowedZones={ceph.example.com}"
 ```
+
+The chart deploys the image matching its `appVersion` unless `image.tag` is set.
 
 Interesting values (see `values.yaml`): `watchNamespaces` (one Role/RoleBinding
 per namespace), `allowedZones`, `networkPolicy.*`, `metrics.enabled`.
@@ -174,7 +170,9 @@ $ dig +short SRV _ceph-mon._tcp.ceph.example.com
 ```
 
 A CR with a zone outside `allowedZones` was rejected (`ZoneNotAllowed`) and
-no `DNSEndpoint` was created.
+no `DNSEndpoint` was created. From a host outside the cluster,
+`mon-all.ceph.example.com:3300` was reachable and all three mons answered the
+Ceph client.
 
 ## Configuration
 
