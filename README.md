@@ -198,6 +198,12 @@ The operator is read-only towards Rook and carries namespace-scoped RBAC only
 (Roles, no ClusterRole at runtime). Deleting a `CephMonDNSEndpoint` removes
 its `DNSEndpoint` (owner reference), and ExternalDNS removes the DNS records.
 
+**Recommended: set `--allowed-zones` (`allowedZones` in Helm).** By default it
+is empty, and the operator accepts any zone. Then anyone who can create a
+`CephMonDNSEndpoint` and a ConfigMap in a watched namespace can publish A
+records with arbitrary IPs in every zone your ExternalDNS manages. The Kustomize
+deployment does not set the flag; add it to the manager args in a patch.
+
 ## Development
 
 Requirements: Go (version in `go.mod`), make, Docker and
