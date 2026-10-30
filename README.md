@@ -25,9 +25,11 @@ If you run a central Rook Ceph cluster that is mounted from outside
 Kubernetes (e.g. ceph-csi in other clusters, Proxmox, kernel or ceph-fuse
 mounts), the clients need a mon address to connect to. With host networking
 the mons listen on node IPs, and when Rook fails a mon over to another node,
-it comes back with a different IP. A client only needs to reach one mon on the
-first connect; that mon returns the current monmap with the addresses of all
-others. A Service, load balancer or Ingress doesn't help: Ceph doesn't speak
+it comes back with a different IP. Rook records the current addresses only
+inside the cluster, in the `rook-ceph-mon-endpoints` ConfigMap; nothing
+outside Kubernetes is told about the change. A client only needs to reach
+one mon on the first connect; that mon returns the current monmap with the
+addresses of all others. A Service, load balancer or Ingress doesn't help: Ceph doesn't speak
 HTTP, and clients connect directly to the addresses in the monmap. So this
 project publishes the current mon IPs under stable DNS names.
 
