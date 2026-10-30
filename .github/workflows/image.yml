@@ -4,10 +4,12 @@ name: Image
 # - push to main: tags "main" and "sha-<short commit>"
 # - tag v*:       tag "<git tag>" (e.g. v0.1.0) and "sha-<short commit>"
 #                 plus the Helm chart oci://ghcr.io/<owner>/charts/rook-mon-dns
+# - docs-only commits on main build nothing
 on:
   push:
     branches: [main]
     tags: ["v*"]
+    paths-ignore: ["**.md", "docs/**", "LICENSE"]
 
 permissions: {}
 

@@ -1,9 +1,13 @@
 name: E2E Tests
 
+# Docs-only changes skip this (slow) suite; lint and unit tests still report
+# the required "Run on Ubuntu" check.
 on:
   push:
     branches: [main]
+    paths-ignore: ["**.md", "docs/**", "LICENSE"]
   pull_request:
+    paths-ignore: ["**.md", "docs/**", "LICENSE"]
   workflow_dispatch:
 
 concurrency:
