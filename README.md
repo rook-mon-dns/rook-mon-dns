@@ -23,15 +23,31 @@ the cluster (e.g. Proxmox, bare-metal hosts, VMs).
 
 If you run a central Rook Ceph cluster that is mounted from outside
 Kubernetes (e.g. ceph-csi in other clusters, Proxmox, kernel or ceph-fuse
-mounts), the clients need a mon address to connect to. With host networking
-the mons listen on node IPs, and when Rook fails a mon over to another node,
-it comes back with a different IP. Rook records the current addresses only
-inside the cluster, in the `rook-ceph-mon-endpoints` ConfigMap; nothing
-outside Kubernetes is told about the change. A client only needs to reach
-one mon on the first connect; that mon returns the current monmap with the
-addresses of all others. A Service, load balancer or Ingress doesn't help: Ceph doesn't speak
-HTTP, and clients connect directly to the addresses in the monmap. So this
-project publishes the current mon IPs under stable DNS names.
+mounts), the clients need mon addresses in their configuration. With host
+networking the mons listen on host IPs, and when Rook fails a mon over to
+another node, it comes back with a different IP. Rook records the current
+addresses only inside the cluster, in the `rook-ceph-mon-endpoints`
+ConfigMap; nothing outside Kubernetes is told about the change.
+
+Connected clients follow such changes through the monmap. The configured
+addresses are only used to connect in the first place (new mount, reboot,
+client restart), and a client only needs one of them to be right. But once all
+of them are stale, the client can't connect any more.
+
+A `LoadBalancer` Service as a stable entry point doesn't work, and that is
+how this project started: a Service forwards to the pod IPs, and for
+host-network pods that is always the node's Kubernetes IP. On multi-homed
+nodes with a separate Ceph public network the mons don't listen there, and
+the Service can't be pointed at the other address (short of maintaining
+endpoints by hand, which brings back the original problem). Even with matching
+addresses, Ceph's messenger checks them on connect: with msgr2 the client
+sends the address it dialed, and a mon drops the connection if that is not
+one of its own ("peer is trying to reach ... which is not us"); with msgr1 the
+client drops it when the mon reports a different address. So a load balancer
+IP only works if the mons themselves are configured with it.
+
+So this project publishes the current mon IPs under stable DNS names, which
+clients resolve to the real mon addresses.
 
 ## How it works
 
