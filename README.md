@@ -19,6 +19,18 @@ the cluster (e.g. Proxmox, bare-metal hosts, VMs).
 > This is an independent community project. It is not affiliated with or
 > endorsed by the Rook project, Ceph or the CNCF.
 
+## Why
+
+If you run a central Rook Ceph cluster that is mounted from outside
+Kubernetes (e.g. ceph-csi in other clusters, Proxmox, kernel or ceph-fuse
+mounts), the clients need a mon address to connect to. With host networking
+the mons listen on node IPs, and when Rook fails a mon over to another node,
+it comes back with a different IP. A client only needs to reach one mon on the
+first connect; that mon returns the current monmap with the addresses of all
+others. A Service, load balancer or Ingress doesn't help: Ceph doesn't speak
+HTTP, and clients connect directly to the addresses in the monmap. So this
+project publishes the current mon IPs under stable DNS names.
+
 ## How it works
 
 ```mermaid
