@@ -130,8 +130,8 @@ Then create a `CephMonDNSEndpoint` as shown under [Configuration](#configuration
 ### Helm
 
 ```sh
-git clone --branch v0.1.0 https://github.com/rook-mon-dns/rook-mon-dns.git
-helm install rook-mon-dns rook-mon-dns/charts/rook-mon-dns \
+helm install rook-mon-dns oci://ghcr.io/rook-mon-dns/charts/rook-mon-dns \
+  --version 0.1.0 \
   --namespace rook-ceph \
   --set "allowedZones={ceph.example.com}"
 ```

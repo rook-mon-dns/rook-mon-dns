@@ -3,6 +3,7 @@ name: Image
 # Builds and pushes ghcr.io/<owner>/<repo> with the repository's GITHUB_TOKEN:
 # - push to main: tags "main" and "sha-<short commit>"
 # - tag v*:       tag "<git tag>" (e.g. v0.1.0) and "sha-<short commit>"
+#                 plus the Helm chart oci://ghcr.io/<owner>/charts/rook-mon-dns
 on:
   push:
     branches: [main]
@@ -57,3 +58,29 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  chart:
+    # Release tags only: chart version = tag without "v", appVersion = tag.
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: image
+    permissions:
+      contents: read
+      packages: write
+    name: Package and push Helm chart
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Push chart to oci://ghcr.io/<owner>/charts
+        env:
+          TAG: ${{ github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          OWNER: ${{ github.repository_owner }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$GITHUB_TOKEN" | helm registry login ghcr.io -u "$ACTOR" --password-stdin
+          helm package charts/rook-mon-dns --version "${TAG#v}" --app-version "$TAG" -d dist
+          helm push "dist/rook-mon-dns-${TAG#v}.tgz" "oci://ghcr.io/${OWNER}/charts"
