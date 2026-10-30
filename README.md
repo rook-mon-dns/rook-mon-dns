@@ -7,8 +7,9 @@ objects. This makes the Ceph monitors reachable by name for clients outside
 the cluster (e.g. Proxmox, bare-metal hosts, VMs).
 
 > [!WARNING]
-> **Alpha – use at your own risk.** So far this operator has only been
-> tested with unit and envtest tests, not yet on a real cluster. The API (`v1alpha1`) may change without a
+> **Alpha – use at your own risk.** Tested with unit, envtest and kind e2e
+> tests and on one real cluster (see [Tested setup](#tested-setup)), but not
+> yet in wider production use. The API (`v1alpha1`) may change without a
 > migration path. Test it in a non-critical environment first; no warranty
 > of any kind (see the license).
 >
@@ -74,8 +75,23 @@ The records are written into a single `DNSEndpoint` object per
    ```sh
    kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/external-dns/master/config/crd/standard/dnsendpoints.externaldns.k8s.io.yaml
    ```
-3. **ExternalDNS running with `--source=crd`** and the TXT registry (so it
-   owns and cleans up the records).
+3. **ExternalDNS configured for `DNSEndpoint` objects.** The defaults are not
+   enough:
+   - `--source=crd` (in addition to e.g. `service`/`ingress`), otherwise the
+     `DNSEndpoint` objects are ignored and no records appear;
+   - `--managed-record-types=SRV` (repeat the flag for `A`, `AAAA`, `CNAME`)
+     if you enable the SRV record; by default ExternalDNS only manages
+     A, AAAA and CNAME;
+   - RBAC: `get`/`list`/`watch` on `dnsendpoints` and `update` on
+     `dnsendpoints/status` (group `externaldns.k8s.io`);
+   - the TXT registry (so it owns and cleans up the records) and a
+     `--domain-filter` that covers your zone.
+
+   With the official ExternalDNS Helm chart, which also creates the RBAC:
+   ```yaml
+   sources: [service, ingress, crd]
+   managedRecordTypes: [A, AAAA, CNAME, SRV]
+   ```
 
 The operator needs no access to your DNS provider – ExternalDNS handles that.
 
@@ -114,6 +130,37 @@ helm install rook-mon-dns charts/rook-mon-dns \
 
 Interesting values (see `values.yaml`): `watchNamespaces` (one Role/RoleBinding
 per namespace), `allowedZones`, `networkPolicy.*`, `metrics.enabled`.
+
+## Tested setup
+
+Verified on a real cluster: Rook Ceph with `hostNetwork: true` (3 mons,
+msgr2 only, port 3300), Cilium with the chart's NetworkPolicies enabled,
+ExternalDNS with the PowerDNS provider. Output below with zone and IPs
+replaced by documentation values:
+
+```console
+$ kubectl -n rook-ceph get cmde
+NAME        READY   ZONE              AGE
+rook-ceph   True    ceph.example.com  10s
+
+$ kubectl -n rook-ceph get events --field-selector involvedObject.kind=CephMonDNSEndpoint
+LAST SEEN   TYPE     REASON   OBJECT                         MESSAGE
+10s         Normal   Synced   cephmondnsendpoint/rook-ceph   Published 5 DNS records in zone ceph.example.com
+
+$ dig +short mon1.ceph.example.com
+192.0.2.15
+$ dig +short mon-all.ceph.example.com
+192.0.2.18
+192.0.2.15
+192.0.2.11
+$ dig +short SRV _ceph-mon._tcp.ceph.example.com
+0 10 3300 mon2.ceph.example.com.
+0 10 3300 mon3.ceph.example.com.
+0 10 3300 mon1.ceph.example.com.
+```
+
+A CR with a zone outside `allowedZones` was rejected (`ZoneNotAllowed`) and
+no `DNSEndpoint` was created.
 
 ## Configuration
 
